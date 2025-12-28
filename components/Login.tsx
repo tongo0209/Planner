@@ -45,13 +45,13 @@ const Login: React.FC<LoginProps> = ({ onLogin, onJoinTrip, error }) => {
   };
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center bg-gray-900 p-4" style={{ background: `radial-gradient(circle, rgba(31,41,55,1) 0%, rgba(17,24,39,1) 100%)`}}>
-      <div className="text-center mb-10">
-        <h1 className="text-5xl font-extrabold text-white tracking-tight">TripSync AI</h1>
-        <p className="text-indigo-300 mt-2 text-lg">Người bạn đồng hành thông minh của bạn.</p>
+    <div className="min-h-screen flex flex-col items-center justify-center bg-gray-900 p-4 sm:p-6" style={{ background: `radial-gradient(circle, rgba(31,41,55,1) 0%, rgba(17,24,39,1) 100%)`}}>
+      <div className="text-center mb-6 sm:mb-10 w-full">
+        <h1 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold text-white tracking-tight">TripSync AI</h1>
+        <p className="text-sm sm:text-base text-indigo-300 mt-2">Người bạn đồng hành thông minh của bạn.</p>
       </div>
 
-      <div className="w-full max-w-md bg-gray-800/50 backdrop-blur-lg border border-gray-700 rounded-2xl shadow-2xl p-8">
+      <div className="w-full max-w-md bg-gray-800/50 backdrop-blur-lg border border-gray-700 rounded-2xl shadow-2xl p-6 sm:p-8">
         <div className="flex border-b border-gray-700 mb-6">
           <button 
             onClick={() => setActiveTab('login')} 
