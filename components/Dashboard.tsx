@@ -164,25 +164,25 @@ const Dashboard: React.FC<DashboardProps> = ({
     : trips.filter(trip => trip.managerId === user.id);
 
   return (
-    <div className="min-h-screen bg-gray-900 text-white p-8" style={{ background: `radial-gradient(circle, rgba(31,41,55,1) 0%, rgba(17,24,39,1) 100%)` }}>
-      <header className="flex justify-between items-center mb-10">
-        <div>
-          <h1 className="text-3xl font-bold">Chào mừng, {user.email}</h1>
-          <p className="text-gray-400">Bảng điều khiển chuyến đi của bạn [{user.role.toUpperCase()}]</p>
+    <div className="min-h-screen bg-gray-900 text-white p-4 sm:p-8" style={{ background: `radial-gradient(circle, rgba(31,41,55,1) 0%, rgba(17,24,39,1) 100%)` }}>
+      <header className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6 sm:mb-10">
+        <div className="w-full">
+           <h1 className="text-2xl sm:text-3xl font-bold">Chào mừng, {user.email}</h1>
+           <p className="text-sm sm:text-base text-gray-400">Bảng điều khiển [{user.role.toUpperCase()}]</p>
         </div>
-        <Button onClick={onSignOut} variant="secondary">Đăng xuất</Button>
+        <Button onClick={onSignOut} variant="secondary" className="w-full sm:w-auto">Đăng xuất</Button>
       </header>
 
-      <div className="flex justify-between items-center mb-6">
-        <h2 className="text-2xl font-semibold">Các chuyến đi của bạn</h2>
-        <Button onClick={openCreateTripModal}>
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-6">
+        <h2 className="text-xl sm:text-2xl font-semibold">Các chuyến đi của bạn</h2>
+        <Button onClick={openCreateTripModal} className="w-full sm:w-auto">
           <PlusIcon className="w-5 h-5"/> Chuyến đi mới
         </Button>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
         {userTrips.map(trip => (
-          <div key={trip.id} className="group relative rounded-xl overflow-hidden cursor-pointer shadow-lg"
+          <div key={trip.id} className="group relative rounded-xl overflow-hidden cursor-pointer shadow-lg hover:shadow-xl transition-shadow"
                onClick={(e) => {
                  // Prevent navigation when clicking on the actions menu
                  if (!(e.target as HTMLElement).closest('.actions-menu-container')) {
@@ -190,13 +190,13 @@ const Dashboard: React.FC<DashboardProps> = ({
                  }
                }}
           >
-             <img src={trip.coverImageUrl} alt={trip.name} className="w-full h-80 object-cover group-hover:scale-105 transition-transform duration-500" />
-             <div className="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent"></div>
-             <div className="absolute bottom-0 left-0 p-6 w-full">
-                <h3 className="text-2xl font-bold">{trip.name}</h3>
-                <p className="text-gray-300">{trip.destination}</p>
-                <div className="flex items-center gap-2 mt-2">
-                  <p className="text-xs text-gray-400 font-mono bg-black/40 px-2 py-1 rounded">
+             <img src={trip.coverImageUrl} alt={trip.name} className="w-full h-40 sm:h-48 lg:h-80 object-cover group-hover:scale-105 transition-transform duration-500" />
+             <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/50 to-transparent"></div>
+             <div className="absolute bottom-0 left-0 p-3 sm:p-6 w-full">
+                <h3 className="text-lg sm:text-2xl font-bold truncate">{trip.name}</h3>
+                <p className="text-sm sm:text-base text-gray-300 truncate">{trip.destination}</p>
+                <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 mt-2">
+                  <p className="text-xs text-gray-400 font-mono bg-black/40 px-2 py-1 rounded truncate">
                     {trip.customId || trip.id}
                   </p>
                   <button
@@ -228,9 +228,61 @@ const Dashboard: React.FC<DashboardProps> = ({
       </div>
 
       {user.role === UserRole.ADMIN && (
-        <div className="mt-12">
-           <h2 className="text-2xl font-semibold mb-4">Hành động của Admin</h2>
-           <Button variant='secondary' onClick={() => setIsPlannerModalOpen(true)}>Quản lý Planner</Button>
+        <div className="mt-8 sm:mt-12">
+           <h2 className="text-xl sm:text-2xl font-semibold mb-4">👤 Quản lý Planners</h2>
+           
+           {/* Danh sách Planner hiện tại */}
+           {planners.length > 0 && (
+             <div className="mb-6 bg-gray-800/50 border border-gray-700 rounded-lg p-4 sm:p-6">
+               <h3 className="font-semibold text-gray-300 mb-4">Planner hiện tại ({planners.length})</h3>
+               <div className="space-y-3 max-h-96 overflow-y-auto pr-2">
+                 {planners.map(p => (
+                   <div key={p.id} className="flex flex-col sm:flex-row sm:justify-between sm:items-center bg-gray-700/50 p-3 rounded-lg gap-3">
+                     <div className="flex-1">
+                       <p className="text-white font-medium break-all">{p.email}</p>
+                       <p className="text-xs text-gray-400">ID: {p.id.substring(0, 8)}...</p>
+                     </div>
+                     <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
+                       <button
+                         onClick={() => handleTriggerResetPassword(p.email)}
+                         className="text-xs px-3 py-1 rounded bg-yellow-500/10 hover:bg-yellow-500/20 text-yellow-400 hover:text-yellow-300 transition whitespace-nowrap"
+                       >
+                         🔑 Reset PW
+                       </button>
+                       <button 
+                         onClick={() => setPlannerToDelete(p)}
+                         className="text-xs px-3 py-1 rounded bg-red-500/10 hover:bg-red-500/20 text-red-400 hover:text-red-300 transition whitespace-nowrap"
+                       >
+                         🗑️ Xóa
+                       </button>
+                     </div>
+                   </div>
+                 ))}
+               </div>
+             </div>
+           )}
+           
+           {/* Thêm Planner mới */}
+           <div className="bg-gray-800/50 border border-gray-700 rounded-lg p-4 sm:p-6">
+             <h3 className="font-semibold text-gray-300 mb-4">➕ Thêm Planner mới</h3>
+             <div className="space-y-3 max-w-md">
+               <Input 
+                 label="Email"
+                 placeholder="planner@email.com" 
+                 type="email"
+                 value={newPlannerEmail} 
+                 onChange={e => setNewPlannerEmail(e.target.value)}
+               />
+               <Input
+                 label="Mật khẩu"
+                 placeholder="••••••••"
+                 type="password"
+                 value={newPlannerPassword}
+                 onChange={e => setNewPlannerPassword(e.target.value)}
+               />
+               <Button onClick={handleAddPlanner} className="w-full">Thêm Planner</Button>
+             </div>
+           </div>
         </div>
       )}
 
@@ -267,53 +319,6 @@ const Dashboard: React.FC<DashboardProps> = ({
               </>
             )}
             <Button onClick={handleSubmitTripForm} className="w-full">{editingTrip ? "Lưu thay đổi" : "Tạo chuyến đi"}</Button>
-        </div>
-      </Modal>
-
-      <Modal isOpen={isPlannerModalOpen} onClose={() => setIsPlannerModalOpen(false)} title="Quản lý Planners">
-        <div className="space-y-4">
-            <h4 className="font-semibold text-gray-300">Planner hiện tại</h4>
-            <div className="space-y-2 max-h-48 overflow-y-auto pr-2">
-                {planners.map(p => (
-                    <div key={p.id} className="flex justify-between items-center bg-gray-700/50 p-2 rounded-lg">
-                        <span className="text-white">{p.email}</span>
-                        <div className="flex gap-2">
-                            <button
-                                onClick={() => handleTriggerResetPassword(p.email)}
-                                className="text-yellow-400 hover:text-yellow-300 text-xs px-2 py-1 rounded bg-yellow-500/10 hover:bg-yellow-500/20"
-                            >
-                                Đặt lại mật khẩu
-                            </button>
-                            <button 
-                                onClick={() => setPlannerToDelete(p)}
-                                className="text-red-400 hover:text-red-300 text-xs px-2 py-1 rounded bg-red-500/10 hover:bg-red-500/20"
-                            >
-                                Xóa
-                            </button>
-                        </div>
-                    </div>
-                ))}
-            </div>
-            <div className="pt-4 border-t border-gray-700">
-                 <h4 className="font-semibold text-gray-300 mb-2">Thêm Planner mới</h4>
-                 <div className="space-y-3">
-                    <Input 
-                        label="Email"
-                        placeholder="planner@email.com" 
-                        type="email"
-                        value={newPlannerEmail} 
-                        onChange={e => setNewPlannerEmail(e.target.value)}
-                    />
-                    <Input
-                        label="Mật khẩu"
-                        placeholder="••••••••"
-                        type="password"
-                        value={newPlannerPassword}
-                        onChange={e => setNewPlannerPassword(e.target.value)}
-                    />
-                    <Button onClick={handleAddPlanner} className="w-full">Thêm</Button>
-                 </div>
-            </div>
         </div>
       </Modal>
 

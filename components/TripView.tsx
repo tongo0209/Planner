@@ -172,49 +172,62 @@ const TripView: React.FC<TripViewProps> = ({ trip, user, onBack, onUpdateTrip })
       <div className="absolute inset-0 bg-gradient-to-t from-gray-900 via-gray-900/70 to-transparent"></div>
       
       <div className="relative z-10 p-4 sm:p-6 lg:p-8">
-        <header className="flex justify-between items-start mb-8">
-          <div>
+        <header className="flex flex-col sm:flex-row justify-between items-start gap-4 mb-6 sm:mb-8">
+          <div className="w-full">
              {isEditingHeader ? (
                 <div className="space-y-2">
-                    <Input value={headerData.name} onChange={e => setHeaderData({...headerData, name: e.target.value})} className="text-4xl md:text-5xl font-extrabold tracking-tight !p-0 !bg-transparent !border-0"/>
-                    <Input value={headerData.destination} onChange={e => setHeaderData({...headerData, destination: e.target.value})} className="text-lg !p-0 !bg-transparent !border-0 text-gray-300"/>
-                    <div className="flex gap-2">
-                        <Input type="date" value={headerData.startDate} onChange={e => setHeaderData({...headerData, startDate: e.target.value})} className="text-md !p-0 !bg-transparent !border-0 text-indigo-400" />
-                        <Input type="date" value={headerData.endDate} onChange={e => setHeaderData({...headerData, endDate: e.target.value})} className="text-md !p-0 !bg-transparent !border-0 text-indigo-400" />
+                    <Input value={headerData.name} onChange={e => setHeaderData({...headerData, name: e.target.value})} className="text-2xl sm:text-4xl md:text-5xl font-extrabold tracking-tight !p-0 !bg-transparent !border-0"/>
+                    <Input value={headerData.destination} onChange={e => setHeaderData({...headerData, destination: e.target.value})} className="text-base sm:text-lg !p-0 !bg-transparent !border-0 text-gray-300"/>
+                    <div className="flex flex-col sm:flex-row gap-2">
+                        <Input type="date" value={headerData.startDate} onChange={e => setHeaderData({...headerData, startDate: e.target.value})} className="text-sm !p-0 !bg-transparent !border-0 text-indigo-400" />
+                        <Input type="date" value={headerData.endDate} onChange={e => setHeaderData({...headerData, endDate: e.target.value})} className="text-sm !p-0 !bg-transparent !border-0 text-indigo-400" />
                     </div>
                 </div>
             ) : (
                 <div>
-                    <h1 className="text-4xl md:text-5xl font-extrabold tracking-tight">{trip.name}</h1>
-                    <p className="text-lg text-gray-300">{trip.destination}</p>
-                    <p className="text-md text-indigo-400">{trip.startDate} đến {trip.endDate}</p>
+                    <h1 className="text-2xl sm:text-4xl md:text-5xl font-extrabold tracking-tight">{trip.name}</h1>
+                    <p className="text-base sm:text-lg text-gray-300">{trip.destination}</p>
+                    <p className="text-sm sm:text-base text-indigo-400">{trip.startDate} đến {trip.endDate}</p>
                 </div>
             )}
-            <div className="flex items-center gap-2 mt-2 text-gray-400">
-                <UsersIcon className="w-5 h-5" />
-                <span>{trip.participants.length > 0 ? trip.participants.join(', ') : 'Chưa có thành viên'}</span>
+            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 mt-2">
+                <UsersIcon className="w-4 h-4 sm:w-5 sm:h-5 flex-shrink-0" />
+                {trip.participants.length > 0 ? (
+                  <div className="flex gap-2 overflow-x-auto pb-2 w-full">
+                    {trip.participants.map((participant, idx) => (
+                      <span 
+                        key={idx}
+                        className="bg-indigo-600/20 text-indigo-300 px-2 sm:px-3 py-1 rounded-full text-xs sm:text-sm font-medium whitespace-nowrap flex-shrink-0"
+                      >
+                        {participant}
+                      </span>
+                    ))}
+                  </div>
+                ) : (
+                  <span className="text-xs sm:text-sm text-gray-400 italic">Chưa có thành viên</span>
+                )}
                  {isAdminOrManager && (
                     <button 
                       onClick={() => setIsParticipantModalOpen(true)} 
-                      className="ml-2 text-xs bg-indigo-600 hover:bg-indigo-500 text-white px-3 py-1.5 rounded-lg font-medium transition"
+                      className="ml-auto sm:ml-2 text-xs bg-indigo-600 hover:bg-indigo-500 text-white px-3 py-1 rounded-lg font-medium transition whitespace-nowrap"
                     >
-                      + Quản lý thành viên
+                      ✏️ Quản lý
                     </button>
                 )}
             </div>
           </div>
-          <div className="flex gap-2">
+          <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
              {isAdminOrManager && (
                 isEditingHeader ? (
                     <>
-                        <Button onClick={handleHeaderSave} variant="primary">Lưu</Button>
-                        <Button onClick={handleHeaderCancel} variant="secondary">Hủy</Button>
+                        <Button onClick={handleHeaderSave} variant="primary" className="flex-1 sm:flex-none">Lưu</Button>
+                        <Button onClick={handleHeaderCancel} variant="secondary" className="flex-1 sm:flex-none">Hủy</Button>
                     </>
                 ) : (
-                    <Button onClick={() => setIsEditingHeader(true)} variant="secondary">Chỉnh sửa</Button>
+                    <Button onClick={() => setIsEditingHeader(true)} variant="secondary" className="flex-1 sm:flex-none">Chỉnh sửa</Button>
                 )
             )}
-            <button onClick={onBack} className="bg-white/10 backdrop-blur-sm text-white font-semibold py-2 px-4 rounded-lg hover:bg-white/20 transition">
+            <button onClick={onBack} className="flex-1 sm:flex-none bg-white/10 backdrop-blur-sm text-white font-semibold py-2 px-4 rounded-lg hover:bg-white/20 transition">
               &larr; Quay lại
             </button>
           </div>
@@ -222,8 +235,8 @@ const TripView: React.FC<TripViewProps> = ({ trip, user, onBack, onUpdateTrip })
 
         <TripStats trip={trip} />
 
-        <main className="grid grid-cols-1 lg:grid-cols-3 gap-6 mt-6">
-          <div className="lg:col-span-2 space-y-6">
+        <main className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6 mt-4 sm:mt-6">
+          <div className="lg:col-span-2 space-y-4 sm:space-y-6">
             <Timeline 
               initialEvents={trip.timeline}
               tripDuration={getDaysDuration()}
@@ -252,13 +265,13 @@ const TripView: React.FC<TripViewProps> = ({ trip, user, onBack, onUpdateTrip })
       </div>
 
       <Modal isOpen={isParticipantModalOpen} onClose={() => setIsParticipantModalOpen(false)} title="Quản lý thành viên">
-        <div className="space-y-4">
+        <div className="space-y-4 max-h-[70vh] overflow-y-auto">
             <h4 className="font-semibold text-gray-300">Thành viên hiện tại</h4>
-            <div className="space-y-2 max-h-48 overflow-y-auto pr-2">
+            <div className="space-y-2 max-h-40 sm:max-h-48 overflow-y-auto pr-2">
                 {trip.participants.map(p => (
-                    <div key={p} className="flex justify-between items-center bg-gray-700/50 p-2 rounded-lg">
+                    <div key={p} className="flex flex-col sm:flex-row justify-between items-start sm:items-center bg-gray-700/50 p-2 sm:p-3 rounded-lg gap-2 sm:gap-0">
                         {editingParticipant === p ? (
-                          <div className="flex-1 flex gap-2">
+                          <div className="flex-1 flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
                             <Input 
                               value={editParticipantName}
                               onChange={e => setEditParticipantName(e.target.value)}
@@ -281,8 +294,8 @@ const TripView: React.FC<TripViewProps> = ({ trip, user, onBack, onUpdateTrip })
                           </div>
                         ) : (
                           <>
-                            <span className="text-white">{p}</span>
-                            <div className="flex gap-2">
+                            <span className="text-white font-medium break-all">{p}</span>
+                            <div className="flex gap-2 ml-auto">
                               <button 
                                   onClick={() => handleStartEditParticipant(p)}
                                   className="text-blue-400 hover:text-blue-300 text-xs px-2 py-1 rounded bg-blue-500/10 hover:bg-blue-500/20"
@@ -303,14 +316,20 @@ const TripView: React.FC<TripViewProps> = ({ trip, user, onBack, onUpdateTrip })
             </div>
             <div className="pt-4 border-t border-gray-700">
                  <h4 className="font-semibold text-gray-300 mb-2">Thêm thành viên mới</h4>
-                 <div className="flex gap-2">
+                 <div className="flex flex-col sm:flex-row gap-2">
                     <Input 
                         placeholder="Tên thành viên" 
                         value={newParticipantName} 
                         onChange={e => setNewParticipantName(e.target.value)}
                         onKeyPress={e => e.key === 'Enter' && handleAddParticipant()}
+                        className="flex-1"
                     />
-                    <Button onClick={handleAddParticipant}>Thêm</Button>
+                    <button
+                      onClick={handleAddParticipant}
+                      className="w-full sm:w-auto bg-indigo-600 hover:bg-indigo-500 text-white px-4 py-2 rounded-lg font-medium transition"
+                    >
+                      Thêm
+                    </button>
                  </div>
             </div>
         </div>

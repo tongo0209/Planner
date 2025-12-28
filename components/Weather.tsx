@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { WeatherInfo } from '../types';
 import { Card } from './ui';
 import { SunIcon, MapPinIcon } from './icons';
+// Mocked weather (local) — reverted to previous simple implementation.
 
 interface WeatherProps {
   destination: string;
@@ -23,9 +24,9 @@ interface DailyForecast {
   icon: string;
 }
 
-// Mock weather data. Replace with a real API call (e.g., OpenWeatherMap).
+// Mock weather data. Replace with a real API call (e.g., OpenWeatherMap) if desired.
 const fetchWeather = async (destination: string): Promise<WeatherInfo> => {
-  console.log(`Fetching weather for ${destination}...`);
+  console.log(`Fetching weather for ${destination} (mock)...`);
   await new Promise(res => setTimeout(res, 500)); // Simulate API delay
   
   const temps: { [key: string]: number } = {
