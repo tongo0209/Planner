@@ -90,7 +90,46 @@ const App: React.FC = () => {
     return trip;
   };
 
-  // Hàm kiểm tra và tạo custom_id cho trips chưa có
+  // Hàm lưu lịch sử truy cập chuyến đi
+  const saveAccessHistory = async (customId: string, tripName: string, tripDestination: string) => {
+    try {
+      // Lưu vào Supabase
+      const { error } = await supabase
+        .from('trip_access_history')
+        .upsert(
+          {
+            custom_id: customId,
+            trip_name: tripName,
+            trip_destination: tripDestination,
+            accessed_at: new Date().toISOString(),
+          },
+          { onConflict: 'custom_id' }
+        );
+      
+      if (error) console.error('Lỗi lưu truy cập:', error);
+      
+      // Lưu vào localStorage để hiển thị nhanh
+      const recentTrips = JSON.parse(localStorage.getItem('recentTrips') || '[]');
+      const filteredTrips = recentTrips.filter((t: any) => t.customId !== customId);
+      const newRecentTrips = [
+        { customId, tripName, tripDestination, accessedAt: new Date().getTime() },
+        ...filteredTrips
+      ].slice(0, 10); // Giữ 10 chuyến đi gần nhất
+      localStorage.setItem('recentTrips', JSON.stringify(newRecentTrips));
+    } catch (err) {
+      console.error('Lỗi lưu access history:', err);
+    }
+  };
+
+  // Hàm lấy danh sách chuyến đi truy cập gần đây (2 ngày)
+  const getRecentTrips = (): any[] => {
+    const recentTrips = JSON.parse(localStorage.getItem('recentTrips') || '[]');
+    const twoDaysAgo = new Date().getTime() - 2 * 24 * 60 * 60 * 1000;
+    
+    return recentTrips.filter((trip: any) => trip.accessedAt > twoDaysAgo);
+  };
+
+  // Hàm xóa một truy cập từ lịch sử
   const ensureCustomId = async (trip: any): Promise<any> => {
     if (!trip.custom_id) {
       const customId = generateCustomId(trip.destination);
@@ -261,6 +300,14 @@ const App: React.FC = () => {
         packingList: tripWithTimeline.packing_list,
         additionalContributions: tripWithTimeline.additional_contributions,
       };
+      
+      // Lưu lịch sử truy cập
+      await saveAccessHistory(
+        trip.custom_id,
+        trip.name,
+        trip.destination
+      );
+      
       setSelectedTrip(formattedTrip);
       setView('trip');
     }
