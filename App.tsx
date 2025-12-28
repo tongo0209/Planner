@@ -5,7 +5,7 @@ import Dashboard from './components/Dashboard';
 import TripView from './components/TripView';
 import { supabase } from './services/supabaseClient';
 import { Spinner } from './components/ui';
-
+import { Analytics } from "@vercel/analytics/react";
 type AppView = 'login' | 'dashboard' | 'trip';
 
 // Hàm tạo custom_id ngắn gọn dễ chia sẻ (VD: "paris-a3x7k2")
@@ -575,6 +575,7 @@ const App: React.FC = () => {
 
   return (
     <div className="bg-gray-900">
+      <Analytics />
       {renderContent()}
     </div>
   );
