@@ -14,7 +14,7 @@ async function geocode(destination: string) {
   if (!res.ok) throw new Error('Geocoding failed');
   const data = await res.json();
   if (!data || data.length === 0) throw new Error('Location not found');
-  return data[0];
+  return data[0]; 
 }
 
 export interface OneCallResult {

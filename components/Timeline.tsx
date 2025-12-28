@@ -280,19 +280,21 @@ const Timeline: React.FC<TimelineProps> = ({ initialEvents, tripDuration, tripDe
         </div>
       )}
       <div className="flex justify-between items-center mb-4">
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3 whitespace-nowrap">
           <CalendarIcon className="w-6 h-6 text-indigo-300" />
           <h3 className="text-xl font-bold text-white">Lịch trình</h3>
         </div>
         {isAdmin && (
-            <div className="flex gap-2">
-              <Button onClick={handleOpenAddEventModal} variant="secondary">
-                  <PlusIcon className="w-5 h-5"/> Thêm hoạt động
-              </Button>
-              <Button onClick={() => setIsAISuggestModalOpen(true)} variant="secondary">
-                  <SparklesIcon className="w-5 h-5"/> Gợi ý từ AI
-              </Button>
-            </div>
+          <div className="flex gap-2">
+            <Button onClick={handleOpenAddEventModal} variant="secondary" className="flex items-center gap-2">
+              <PlusIcon className="w-5 h-5"/>
+              <span className="hidden sm:inline">Thêm hoạt động</span>
+            </Button>
+            <Button onClick={() => setIsAISuggestModalOpen(true)} variant="secondary" className="flex items-center gap-2">
+              <SparklesIcon className="w-5 h-5"/>
+              <span className="hidden sm:inline">Gợi ý từ AI</span>
+            </Button>
+          </div>
         )}
       </div>
 
@@ -307,8 +309,8 @@ const Timeline: React.FC<TimelineProps> = ({ initialEvents, tripDuration, tripDe
               <div className="flex items-center gap-3">
                 <button
                   onClick={() => toggleDayExpanded(dayNum)}
-                  className="text-indigo-400 hover:text-indigo-300 transition-transform"
-                  style={{ transform: isExpanded ? 'rotate(90deg)' : 'rotate(0deg)' }}
+                  className={`text-indigo-400 hover:text-indigo-300 transform transition-transform ${isExpanded ? 'rotate-90' : 'rotate-0'}`}
+                  aria-label={isExpanded ? 'Thu gọn' : 'Mở rộng'}
                   title={isExpanded ? 'Thu gọn' : 'Mở rộng'}
                 >
                   ▶
@@ -384,11 +386,13 @@ const Timeline: React.FC<TimelineProps> = ({ initialEvents, tripDuration, tripDe
       <Modal isOpen={isAISuggestModalOpen} onClose={() => { setIsAISuggestModalOpen(false); setSelectedDay(null); }} title="Trợ lý lịch trình AI">
         <div className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-gray-300 mb-2">Tạo lịch trình cho:</label>
+            <label htmlFor="ai-day-select" className="block text-sm font-medium text-gray-300 mb-2">Tạo lịch trình cho:</label>
             <select 
+              id="ai-day-select"
               value={selectedDay || 'all'}
               onChange={(e) => setSelectedDay(e.target.value === 'all' ? null : parseInt(e.target.value))}
               className="w-full px-3 py-2 rounded-lg bg-gray-800 border border-gray-600 text-white"
+              aria-label="Chọn ngày để tạo lịch trình"
             >
               <option value="all">Tất cả các ngày</option>
               {Array.from({ length: tripDuration }, (_, i) => {
