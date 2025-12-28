@@ -1,8 +1,14 @@
 import { GoogleGenAI, Type } from "@google/genai";
 import { TimelineEvent } from '../types';
 
-// IMPORTANT: Ensure you have the API_KEY environment variable set.
-const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+// Lấy API Key từ environment variable
+const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
+
+if (!apiKey) {
+  console.warn('⚠️ VITE_GEMINI_API_KEY không được set. Vui lòng thêm API key vào .env file');
+}
+
+const ai = new GoogleGenAI({ apiKey: apiKey || '' });
 
 const timelineSchema = {
     type: Type.ARRAY,
