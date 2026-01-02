@@ -1,6 +1,6 @@
-import React, { useState, useMemo, useEffect } from 'react';
-import { Expense, Contribution, Trip, formatCurrency } from '../types';
-import { Card, Button, Input, Modal } from './ui';
+import React, { useState, useMemo, useEffect, useCallback, memo } from 'react';
+import { Expense, Contribution, Trip, formatCurrency, formatDate } from '../types';
+import { Card, Button, Input, Modal, DateInput } from './ui';
 import { WalletIcon, PlusIcon } from './icons';
 
 interface FinancesProps {
@@ -11,7 +11,7 @@ interface FinancesProps {
 
 const EXPENSE_CATEGORIES = ['Ăn uống', 'Di chuyển', 'Chỗ ở', 'Vé tham quan', 'Mua sắm', 'Khác'];
 
-const Finances: React.FC<FinancesProps> = ({ trip, isAdmin, onUpdateTrip }) => {
+const Finances: React.FC<FinancesProps> = memo(({ trip, isAdmin, onUpdateTrip }) => {
   const [isExpenseFormOpen, setIsExpenseFormOpen] = useState(false);
   const [editingExpense, setEditingExpense] = useState<Expense | null>(null);
   const [expenseToDelete, setExpenseToDelete] = useState<Expense | null>(null);
@@ -28,6 +28,7 @@ const Finances: React.FC<FinancesProps> = ({ trip, isAdmin, onUpdateTrip }) => {
   const [isAddFundModalOpen, setIsAddFundModalOpen] = useState(false);
   const [additionalFundAmount, setAdditionalFundAmount] = useState('');
   const [additionalFundDescription, setAdditionalFundDescription] = useState('');
+  const [selectedFundParticipants, setSelectedFundParticipants] = useState<string[]>(trip.participants);
   const [editingRoundId, setEditingRoundId] = useState<string | null>(null);
   const [editRoundAmount, setEditRoundAmount] = useState('');
   const [editRoundDescription, setEditRoundDescription] = useState('');
@@ -215,6 +216,12 @@ const Finances: React.FC<FinancesProps> = ({ trip, isAdmin, onUpdateTrip }) => {
     );
   };
   
+  const handleToggleFundParticipant = (participant: string) => {
+    setSelectedFundParticipants(prev => 
+        prev.includes(participant) ? prev.filter(p => p !== participant) : [...prev, participant]
+    );
+  };
+  
   const handleAddFundContribution = () => {
     const amount = parseFloat(additionalFundAmount);
     if (isNaN(amount) || amount <= 0) {
@@ -222,13 +229,18 @@ const Finances: React.FC<FinancesProps> = ({ trip, isAdmin, onUpdateTrip }) => {
       return;
     }
     
-    // Tạo đợt đóng góp mới với danh sách tất cả thành viên (chưa tick)
+    if (selectedFundParticipants.length === 0) {
+      alert('Vui lòng chọn ít nhất 1 người tham gia đóng quỹ');
+      return;
+    }
+    
+    // Tầo đợt đóng góp mới chỉ với những người được chọn
     const newRound: any = {
       id: `round-${Date.now()}`,
       amount: amount,
       date: new Date().toISOString().split('T')[0],
       description: additionalFundDescription || `Đóng thêm ${formatCurrency(amount)}`,
-      contributions: trip.participants.map(p => ({
+      contributions: selectedFundParticipants.map(p => ({
         id: `c-${Date.now()}-${p}`,
         participant: p,
         amount: amount,
@@ -242,6 +254,7 @@ const Finances: React.FC<FinancesProps> = ({ trip, isAdmin, onUpdateTrip }) => {
     setIsAddFundModalOpen(false);
     setAdditionalFundAmount('');
     setAdditionalFundDescription('');
+    setSelectedFundParticipants(trip.participants); // Reset về mặc định
   };
   
   const handleToggleAdditionalContribution = (roundId: string, participantName: string) => {
@@ -481,8 +494,8 @@ const Finances: React.FC<FinancesProps> = ({ trip, isAdmin, onUpdateTrip }) => {
                     </div>
                   ) : (
                     <div className="flex items-center justify-between mb-2">
-                      <h5 className="text-xs font-semibold text-gray-400">
-                        📋 Đợt {index + 2} - {round.description} ({round.date})
+                        <h5 className="text-xs font-semibold text-gray-400">
+                        📋 Đợt {index + 2} - {round.description} ({formatDate(round.date)})
                       </h5>
                       {isAdmin && (
                         <div className="flex gap-2">
@@ -539,14 +552,17 @@ const Finances: React.FC<FinancesProps> = ({ trip, isAdmin, onUpdateTrip }) => {
         </div>
         {isBalanceExpanded && (
           <div className="space-y-2">
-             {Object.entries(financialSummary.finalBalances).map(([name, balance]) => (
+             {Object.entries(financialSummary.finalBalances).map(([name, balance]) => {
+               const balanceNum = typeof balance === 'number' ? balance : 0;
+               return (
                 <div key={name} className="flex items-center justify-between bg-gray-700/50 p-2 rounded-lg text-sm">
                     <span className="font-medium text-white">{name}</span>
-                    <span className={`font-bold ${balance >= 0 ? 'text-green-400' : 'text-red-400'}`}>
-                        {balance >= 0 ? `+` : ``}{formatCurrency(balance)}
+                    <span className={`font-bold ${balanceNum >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+                        {balanceNum >= 0 ? `+` : ``}{formatCurrency(balanceNum)}
                     </span>
                 </div>
-             ))}
+               );
+             })}
           </div>
         )}
       </div>
@@ -572,7 +588,7 @@ const Finances: React.FC<FinancesProps> = ({ trip, isAdmin, onUpdateTrip }) => {
                 <div key={e.id} className="group flex justify-between items-center bg-gray-700/50 p-3 rounded-lg">
                     <div>
                         <p className="font-medium text-white">{e.description}</p>
-                        <p className="text-xs text-gray-400">Ngày: {e.date} | Bởi {e.paidBy} ({e.category})</p>
+                        <p className="text-xs text-gray-400">Ngày: {formatDate(e.date)} | Bởi {e.paidBy} ({e.category})</p>
                     </div>
                     <div className="flex items-center gap-4">
                         <p className="font-bold text-lg text-indigo-300">{formatCurrency(e.amount)}</p>
@@ -594,7 +610,7 @@ const Finances: React.FC<FinancesProps> = ({ trip, isAdmin, onUpdateTrip }) => {
             <Input label="Mô tả" value={expenseDesc} onChange={e => setExpenseDesc(e.target.value)} placeholder="v.d., Bữa tối tại nhà hàng" />
             <div className="grid grid-cols-2 gap-4">
                 <Input label="Số tiền (VNĐ)" type="number" value={expenseAmount} onChange={e => setExpenseAmount(e.target.value)} placeholder="500000" />
-                <Input label="Ngày" type="date" value={expenseDate} onChange={e => setExpenseDate(e.target.value)} min={trip.startDate} max={trip.endDate} />
+                <DateInput label="Ngày" value={expenseDate} onChange={setExpenseDate} min={trip.startDate} max={trip.endDate} />
             </div>
              <div>
                 <label className="block text-sm font-medium text-gray-300 mb-1">Loại chi phí</label>
@@ -652,6 +668,7 @@ const Finances: React.FC<FinancesProps> = ({ trip, isAdmin, onUpdateTrip }) => {
           setIsAddFundModalOpen(false); 
           setAdditionalFundAmount('');
           setAdditionalFundDescription('');
+          setSelectedFundParticipants(trip.participants);
         }} 
         title="Đóng thêm vào quỹ chung"
       >
@@ -671,9 +688,42 @@ const Finances: React.FC<FinancesProps> = ({ trip, isAdmin, onUpdateTrip }) => {
             placeholder="VD: Đóng thêm cho ăn uống" 
           />
           
+          <div>
+            <label className="block text-sm font-medium text-gray-300 mb-2">Ai cần đóng?</label>
+            <div className="space-y-2 max-h-48 overflow-y-auto">
+              {participants.map(p => {
+                const balance = financialSummary.finalBalances[p] || 0;
+                return (
+                  <label key={p} className="flex items-center justify-between bg-gray-700/50 p-3 rounded-lg cursor-pointer hover:bg-gray-700 transition">
+                    <div className="flex items-center gap-3">
+                      <input
+                        type="checkbox"
+                        checked={selectedFundParticipants.includes(p)}
+                        onChange={() => handleToggleFundParticipant(p)}
+                        className="form-checkbox h-5 w-5 bg-gray-800 border-gray-600 rounded text-green-600 focus:ring-green-500"
+                      />
+                      <div>
+                        <span className="text-sm font-medium text-white">{p}</span>
+                        <div className="text-xs text-gray-400">
+                          Số dư: <span className={balance >= 0 ? 'text-green-400' : 'text-red-400'}>
+                            {balance >= 0 ? '+' : ''}{formatCurrency(balance)}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  </label>
+                );
+              })}
+            </div>
+          </div>
+          
           <div className="p-3 bg-blue-600/10 border border-blue-500/30 rounded-lg text-sm text-gray-300">
-            💡 Hệ thống sẽ tạo một danh sách mới bên dưới với <strong>{participants.length} người</strong>. 
-            Bạn có thể tick những ai đã đóng sau khi tạo.
+            💡 Chọn những người cần đóng thêm quỹ. <strong>{selectedFundParticipants.length}/{participants.length} người</strong> được chọn.
+            {selectedFundParticipants.length < participants.length && (
+              <div className="mt-1 text-yellow-400">
+                ⚠️ Người đã chi nhiều có thể bỏ tick để không phải đóng thêm.
+              </div>
+            )}
           </div>
           
           <Button onClick={handleAddFundContribution} className="w-full">
@@ -682,8 +732,39 @@ const Finances: React.FC<FinancesProps> = ({ trip, isAdmin, onUpdateTrip }) => {
         </div>
       </Modal>
 
+      {/* Modal xác nhận xóa chi phí */}
+      <Modal 
+        isOpen={!!expenseToDelete} 
+        onClose={() => setExpenseToDelete(null)} 
+        title="Xác nhận xóa chi phí"
+      >
+        <div className="space-y-4">
+          <p className="text-gray-300">
+            Bạn có chắc muốn xóa chi phí này không?
+          </p>
+          {expenseToDelete && (
+            <div className="bg-gray-700/50 p-3 rounded-lg">
+              <p className="font-medium text-white">{expenseToDelete.description}</p>
+              <p className="text-sm text-gray-400 mt-1">
+                {formatCurrency(expenseToDelete.amount)} - {formatDate(expenseToDelete.date)}
+              </p>
+            </div>
+          )}
+          <div className="flex gap-3">
+            <Button onClick={() => setExpenseToDelete(null)} variant="secondary" className="flex-1">
+              Hủy
+            </Button>
+            <Button onClick={handleDeleteExpense} className="flex-1 bg-red-600 hover:bg-red-500">
+              Xóa
+            </Button>
+          </div>
+        </div>
+      </Modal>
+
     </Card>
   );
-};
+});
+
+Finances.displayName = 'Finances';
 
 export default Finances;

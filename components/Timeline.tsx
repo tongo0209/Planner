@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, memo, useMemo, useCallback } from 'react';
 import { TimelineEvent } from '../types';
 import { Card, Button, Modal, Input, Spinner } from './ui';
 import { suggestTimeline } from '../services/geminiService';
@@ -13,7 +13,7 @@ interface TimelineProps {
   onUpdateEvents: (updatedEvents: TimelineEvent[]) => void;
 }
 
-const Timeline: React.FC<TimelineProps> = ({ initialEvents, tripDuration, tripDestination, tripStartDate, isAdmin, onUpdateEvents }) => {
+const Timeline: React.FC<TimelineProps> = memo(({ initialEvents, tripDuration, tripDestination, tripStartDate, isAdmin, onUpdateEvents }) => {
   const [events, setEvents] = useState<TimelineEvent[]>(initialEvents);
   
   const [isAISuggestModalOpen, setIsAISuggestModalOpen] = useState(false);
@@ -110,23 +110,23 @@ const Timeline: React.FC<TimelineProps> = ({ initialEvents, tripDuration, tripDe
     return () => clearInterval(timer);
   }, []);
 
-  const handleGetAISuggestions = async () => {
+  const handleGetAISuggestions = useCallback(async () => {
     if (!interests) return;
     setIsAISuggesting(true);
     setAiSuggestions([]);
     const suggestions = await suggestTimeline(tripDestination, selectedDay || tripDuration, interests, selectedDay);
     setAiSuggestions(suggestions);
     setIsAISuggesting(false);
-  };
+  }, [interests, tripDestination, selectedDay, tripDuration]);
   
-  const handleOpenDayTitleEdit = (dayNumber: number) => {
+  const handleOpenDayTitleEdit = useCallback((dayNumber: number) => {
     const dayEvent = events.find(e => e.day === dayNumber);
     setEditingDayNumber(dayNumber);
     setEditingDayTitleValue(dayEvent?.dayTitle || `Ngày ${dayNumber}`);
     setIsEditDayTitleModalOpen(true);
-  };
+  }, [events]);
   
-  const handleSaveDayTitle = () => {
+  const handleSaveDayTitle = useCallback(() => {
     if (editingDayNumber === null) return;
     const updatedEvents = events.map(e => 
       e.day === editingDayNumber ? { ...e, dayTitle: editingDayTitleValue } : e
@@ -135,14 +135,14 @@ const Timeline: React.FC<TimelineProps> = ({ initialEvents, tripDuration, tripDe
     onUpdateEvents(updatedEvents);
     setIsEditDayTitleModalOpen(false);
     setEditingDayNumber(null);
-  };
+  }, [editingDayNumber, editingDayTitleValue, events, onUpdateEvents]);
   
-  const handleOpenAddEventModal = () => {
+  const handleOpenAddEventModal = useCallback(() => {
     setNewEvent({ day: 1, time: '09:00', activity: '', description: '', location: '', locationUrl: '' });
     setIsAddEventModalOpen(true);
-  };
+  }, []);
   
-  const handleAddEvent = () => {
+  const handleAddEvent = useCallback(() => {
     if (!newEvent.activity || !newEvent.description) {
       alert('Vui lòng nhập tên hoạt động và mô tả');
       return;
@@ -163,9 +163,9 @@ const Timeline: React.FC<TimelineProps> = ({ initialEvents, tripDuration, tripDe
     setEvents(updatedEvents);
     onUpdateEvents(updatedEvents);
     setIsAddEventModalOpen(false);
-  };
+  }, [newEvent, events, onUpdateEvents]);
   
-  const toggleDayExpanded = (day: number) => {
+  const toggleDayExpanded = useCallback((day: number) => {
     setExpandedDays(prev => {
       const newSet = new Set(prev);
       if (newSet.has(day)) {
@@ -175,44 +175,49 @@ const Timeline: React.FC<TimelineProps> = ({ initialEvents, tripDuration, tripDe
       }
       return newSet;
     });
-  };
+  }, []);
 
-  const addSuggestionToTimeline = (suggestion: Omit<TimelineEvent, 'id'>) => {
+  const addSuggestionToTimeline = useCallback((suggestion: Omit<TimelineEvent, 'id'>) => {
     const newEvent = { ...suggestion, id: Date.now().toString() };
     const updatedEvents = [...events, newEvent].sort((a,b) => a.day - b.day || a.time.localeCompare(b.time));
     setEvents(updatedEvents);
     onUpdateEvents(updatedEvents);
     setAiSuggestions(prev => prev.filter(s => s !== suggestion));
-  };
+  }, [events, onUpdateEvents]);
 
-  const handleOpenEditModal = (event: TimelineEvent) => {
+  const handleOpenEditModal = useCallback((event: TimelineEvent) => {
     setEditingEvent(event);
     setIsEditModalOpen(true);
-  };
+  }, []);
 
-  const handleUpdateEvent = () => {
+  const handleUpdateEvent = useCallback(() => {
     if (!editingEvent) return;
     const updatedEvents = events.map(e => e.id === editingEvent.id ? editingEvent : e);
     setEvents(updatedEvents);
     onUpdateEvents(updatedEvents);
     setIsEditModalOpen(false);
     setEditingEvent(null);
-  };
+  }, [editingEvent, events, onUpdateEvents]);
 
-  const handleDeleteEvent = (eventId: string) => {
+  const handleDeleteEvent = useCallback((eventId: string) => {
     if (window.confirm('Bạn có chắc chắn muốn xóa sự kiện này không?')) {
         const updatedEvents = events.filter(e => e.id !== eventId);
         setEvents(updatedEvents);
         onUpdateEvents(updatedEvents);
     }
-  };
+  }, [events, onUpdateEvents]);
   
-  const eventsByDay = events.reduce((acc, event) => {
-    (acc[event.day] = acc[event.day] || []).push(event);
-    return acc;
-  }, {} as Record<number, TimelineEvent[]>);
+  const eventsByDay = useMemo(() => {
+    const grouped = events.reduce((acc, event) => {
+      (acc[event.day] = acc[event.day] || []).push(event);
+      return acc;
+    }, {} as Record<number, TimelineEvent[]>);
 
-  Object.values(eventsByDay).forEach(dayEvents => dayEvents.sort((a,b) => a.time.localeCompare(b.time)));
+    Object.entries(grouped).forEach(([, dayEvents]) => {
+      dayEvents.sort((a, b) => a.time.localeCompare(b.time));
+    });
+    return grouped;
+  }, [events]);
 
   const getNextEvent = () => {
     if (!currentDay) return null;
@@ -518,6 +523,8 @@ const Timeline: React.FC<TimelineProps> = ({ initialEvents, tripDuration, tripDe
       </Modal>
     </Card>
   );
-};
+});
+
+Timeline.displayName = 'Timeline';
 
 export default Timeline;

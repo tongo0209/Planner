@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { memo } from 'react';
 import { Trip, formatCurrency } from '../types';
 import { Card } from './ui';
 import { WalletIcon, UsersIcon, CalendarIcon } from './icons';
@@ -7,7 +7,7 @@ interface TripStatsProps {
   trip: Trip;
 }
 
-const StatCard: React.FC<{ icon: React.ReactNode, label: string, value: string | number }> = ({ icon, label, value }) => (
+const StatCard: React.FC<{ icon: React.ReactNode, label: string, value: string | number }> = memo(({ icon, label, value }) => (
     <div className="flex items-center gap-4 bg-gray-800/60 p-4 rounded-lg">
         <div className="text-indigo-400">
             {icon}
@@ -17,10 +17,12 @@ const StatCard: React.FC<{ icon: React.ReactNode, label: string, value: string |
             <p className="text-lg font-bold text-white">{value}</p>
         </div>
     </div>
-);
+));
+
+StatCard.displayName = 'StatCard';
 
 
-const TripStats: React.FC<TripStatsProps> = ({ trip }) => {
+const TripStats: React.FC<TripStatsProps> = memo(({ trip }) => {
   const totalSpent = trip.expenses.reduce((sum, expense) => sum + expense.amount, 0);
   const numParticipants = trip.participants.length;
   const avgSpent = numParticipants > 0 ? totalSpent / numParticipants : 0;
@@ -62,6 +64,8 @@ const TripStats: React.FC<TripStatsProps> = ({ trip }) => {
         />
     </div>
   );
-};
+});
+
+TripStats.displayName = 'TripStats';
 
 export default TripStats;

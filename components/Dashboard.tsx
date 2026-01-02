@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, memo } from 'react';
 import { Trip, AuthUser, UserRole, TripCreationData, TripUpdateData } from '../types';
 import { Card, Button, Modal, Input } from './ui';
 import { PlusIcon, EllipsisVerticalIcon, PencilIcon, DocumentDuplicateIcon } from './icons';
@@ -17,7 +17,7 @@ interface DashboardProps {
   onResetPlannerPassword: (email: string) => void;
 }
 
-const Dashboard: React.FC<DashboardProps> = ({ 
+const Dashboard: React.FC<DashboardProps> = memo(({ 
   user, trips, planners, onSelectTrip, onSignOut, onCreateTrip, onUpdateTripDetails, onCloneTrip,
   onAddPlanner, onDeletePlanner, onResetPlannerPassword 
 }) => {
@@ -339,6 +339,8 @@ const Dashboard: React.FC<DashboardProps> = ({
 
     </div>
   );
-};
+});
+
+Dashboard.displayName = 'Dashboard';
 
 export default Dashboard;

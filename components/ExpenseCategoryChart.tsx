@@ -78,7 +78,7 @@ const ExpenseCategoryChart: React.FC<ExpenseCategoryChartProps> = ({ expenses })
           <div className="absolute inset-0 flex items-center justify-center">
             <div className={`w-32 h-32 rounded-full flex flex-col items-center justify-center text-center border border-gray-800 ${uid}-inner`}>
                 <span className="text-xs text-gray-400">Tổng</span>
-                <span className="font-bold text-white text-xl">{formatCurrency(categorySummary.total)}</span>
+                <span className="font-bold text-white text-l">{formatCurrency(categorySummary.total)}</span>
             </div>
           </div>
         </div>

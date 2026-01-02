@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, memo } from 'react';
 import { PackingItem } from '../types';
 import { Card, Input, Button, Modal, Spinner } from './ui';
 import { ClipboardIcon, PlusIcon, SparklesIcon } from './icons';
@@ -12,7 +12,7 @@ interface PackingListProps {
   onUpdateItems: (updatedItems: PackingItem[]) => void;
 }
 
-const PackingList: React.FC<PackingListProps> = ({ initialItems, isAdmin, tripDestination, tripDuration, onUpdateItems }) => {
+const PackingList: React.FC<PackingListProps> = memo(({ initialItems, isAdmin, tripDestination, tripDuration, onUpdateItems }) => {
   const [items, setItems] = useState<PackingItem[]>(initialItems);
   const [newItem, setNewItem] = useState('');
   
@@ -184,6 +184,8 @@ const PackingList: React.FC<PackingListProps> = ({ initialItems, isAdmin, tripDe
     )}
     </Card>
   );
-};
+});
+
+PackingList.displayName = 'PackingList';
 
 export default PackingList;
