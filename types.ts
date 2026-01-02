@@ -106,3 +106,17 @@ export interface TripUpdateData {
 export const formatCurrency = (amount: number): string => {
   return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(amount);
 };
+
+/**
+ * Formats an ISO date string (YYYY-MM-DD) to dd/mm/yyyy for UI display.
+ * If input is falsy or not in expected format, returns the input unchanged.
+ */
+export const formatDate = (isoDate?: string): string => {
+  if (!isoDate || typeof isoDate !== 'string') return '';
+  // Expecting YYYY-MM-DD (may include time in ISO). Extract date part.
+  const datePart = isoDate.split('T')[0];
+  const parts = datePart.split('-');
+  if (parts.length !== 3) return isoDate;
+  const [year, month, day] = parts;
+  return `${day.padStart(2, '0')}/${month.padStart(2, '0')}/${year}`;
+};

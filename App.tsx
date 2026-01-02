@@ -1,12 +1,25 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, lazy, Suspense } from 'react';
 import { AuthUser, Trip, UserRole, TripCreationData, TripUpdateData } from './types';
 import Login from './components/Login';
-import Dashboard from './components/Dashboard';
-import TripView from './components/TripView';
 import { supabase } from './services/supabaseClient';
 import { Spinner } from './components/ui';
 import { Analytics } from "@vercel/analytics/react";
+
+// Lazy load heavy components
+const Dashboard = lazy(() => import('./components/Dashboard'));
+const TripView = lazy(() => import('./components/TripView'));
+
 type AppView = 'login' | 'dashboard' | 'trip';
+
+// Loading fallback component
+const LoadingFallback: React.FC = () => (
+  <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 flex items-center justify-center">
+    <div className="text-center">
+      <Spinner />
+      <p className="text-gray-400 mt-4 animate-pulse">Đang tải...</p>
+    </div>
+  </div>
+);
 
 // Hàm tạo custom_id ngắn gọn dễ chia sẻ (VD: "paris-a3x7k2")
 const generateCustomId = (destination: string): string => {
@@ -549,25 +562,38 @@ const App: React.FC = () => {
           setView('login');
           return null;
         }
-        return <Dashboard 
-            user={user} 
-            trips={trips} 
-            planners={users.filter(u => u.role === UserRole.MANAGER)}
-            onSelectTrip={handleSelectTrip} 
-            onSignOut={handleSignOut} 
-            onCreateTrip={handleCreateTrip}
-            onUpdateTripDetails={handleUpdateTripDetails}
-            onCloneTrip={handleCloneTrip}
-            onAddPlanner={handleAddPlanner}
-            onDeletePlanner={handleDeletePlanner}
-            onResetPlannerPassword={handleResetPlannerPassword}
-        />;
+        return (
+          <Suspense fallback={<LoadingFallback />}>
+            <Dashboard 
+              user={user} 
+              trips={trips} 
+              planners={users.filter(u => u.role === UserRole.MANAGER)}
+              onSelectTrip={handleSelectTrip} 
+              onSignOut={handleSignOut} 
+              onCreateTrip={handleCreateTrip}
+              onUpdateTripDetails={handleUpdateTripDetails}
+              onCloneTrip={handleCloneTrip}
+              onAddPlanner={handleAddPlanner}
+              onDeletePlanner={handleDeletePlanner}
+              onResetPlannerPassword={handleResetPlannerPassword}
+            />
+          </Suspense>
+        );
       case 'trip':
         if (!selectedTrip) {
           setView(user ? 'dashboard' : 'login');
           return null;
         }
-        return <TripView trip={selectedTrip} user={user} onBack={() => setView(user ? 'dashboard' : 'login')} onUpdateTrip={handleUpdateTrip} />;
+        return (
+          <Suspense fallback={<LoadingFallback />}>
+            <TripView 
+              trip={selectedTrip} 
+              user={user} 
+              onBack={() => setView(user ? 'dashboard' : 'login')} 
+              onUpdateTrip={handleUpdateTrip} 
+            />
+          </Suspense>
+        );
       default:
         return <Login onLogin={handleLogin} onJoinTrip={handleJoinTrip} error={error} />;
     }

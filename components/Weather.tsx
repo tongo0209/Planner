@@ -1,8 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, memo } from 'react';
 import { WeatherInfo } from '../types';
 import { Card } from './ui';
 import { SunIcon, MapPinIcon } from './icons';
-// Mocked weather (local) — reverted to previous simple implementation.
+import { getWeatherInfo } from '../services/geminiService';
 
 interface WeatherProps {
   destination: string;
@@ -24,66 +24,7 @@ interface DailyForecast {
   icon: string;
 }
 
-// Mock weather data. Replace with a real API call (e.g., OpenWeatherMap) if desired.
-const fetchWeather = async (destination: string): Promise<WeatherInfo> => {
-  console.log(`Fetching weather for ${destination} (mock)...`);
-  await new Promise(res => setTimeout(res, 500)); // Simulate API delay
-  
-  const temps: { [key: string]: number } = {
-    "paris": 22,
-    "tokyo": 28,
-    "new york": 19,
-    "hanoi": 32,
-    "đà lạt": 18,
-  };
-  
-  return {
-    location: destination,
-    temperature: temps[destination.toLowerCase()] || 25,
-    condition: 'Nắng, có mây rải rác',
-    icon: '☀️',
-  };
-};
-
-const fetchHourlyForecast = async (destination: string): Promise<HourlyForecast[]> => {
-  await new Promise(res => setTimeout(res, 300));
-  const baseTemp = 25;
-  const currentHour = new Date().getHours();
-  
-  return Array.from({ length: 12 }, (_, i) => {
-    const hour = (currentHour + i) % 24;
-    const temp = baseTemp + Math.sin(hour / 24 * Math.PI * 2) * 5;
-    return {
-      time: `${String(hour).padStart(2, '0')}:00`,
-      temp: Math.round(temp),
-      condition: hour >= 6 && hour <= 18 ? 'Nắng' : 'Ít mây',
-      icon: hour >= 6 && hour <= 18 ? '☀️' : '🌙'
-    };
-  });
-};
-
-const fetchDailyForecast = async (destination: string): Promise<DailyForecast[]> => {
-  await new Promise(res => setTimeout(res, 300));
-  const days = ['CN', 'T2', 'T3', 'T4', 'T5', 'T6', 'T7'];
-  const today = new Date();
-  
-  return [1, 2].map(offset => {
-    const date = new Date(today);
-    date.setDate(date.getDate() + offset);
-    const dayName = days[date.getDay()];
-    
-    return {
-      date: date.toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit' }),
-      dayName,
-      high: 28 + offset * 2,
-      low: 18 + offset,
-      condition: offset === 1 ? 'Nắng' : 'Mưa nhẹ',
-      icon: offset === 1 ? '☀️' : '🌧️'
-    };
-  });
-};
-
-const Weather: React.FC<WeatherProps> = ({ destination }) => {
+const Weather: React.FC<WeatherProps> = memo(({ destination }) => {
   const [weather, setWeather] = useState<WeatherInfo | null>(null);
   const [hourlyForecast, setHourlyForecast] = useState<HourlyForecast[]>([]);
   const [dailyForecast, setDailyForecast] = useState<DailyForecast[]>([]);
@@ -92,17 +33,33 @@ const Weather: React.FC<WeatherProps> = ({ destination }) => {
   useEffect(() => {
     const loadWeather = async () => {
       setLoading(true);
-      const [weatherData, hourlyData, dailyData] = await Promise.all([
-        fetchWeather(destination),
-        fetchHourlyForecast(destination),
-        fetchDailyForecast(destination)
-      ]);
-      setWeather(weatherData);
-      setHourlyForecast(hourlyData);
-      setDailyForecast(dailyData);
-      setLoading(false);
+      try {
+        const data = await getWeatherInfo(destination);
+        setWeather({
+          location: destination,
+          temperature: data.current.temperature,
+          condition: data.current.condition,
+          icon: data.current.icon
+        });
+        setHourlyForecast(data.hourly.slice(0, 8));
+        setDailyForecast(data.daily);
+      } catch (error) {
+        console.error('Error loading weather:', error);
+      } finally {
+        setLoading(false);
+      }
     };
+    
+    // Load ngay lập tức
     loadWeather();
+    
+    // Tự động refresh mỗi 5 phút (300000ms)
+    const refreshInterval = setInterval(() => {
+      loadWeather();
+    }, 5 * 60 * 1000);
+    
+    // Cleanup interval khi component unmount hoặc destination thay đổi
+    return () => clearInterval(refreshInterval);
   }, [destination]);
 
   return (
@@ -168,6 +125,8 @@ const Weather: React.FC<WeatherProps> = ({ destination }) => {
         )}
     </Card>
   );
-};
+});
+
+Weather.displayName = 'Weather';
 
 export default Weather;
