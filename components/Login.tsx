@@ -72,7 +72,6 @@ const Login: React.FC<LoginProps> = ({ onLogin, onJoinTrip, error }) => {
             <Input label="Email" id="email" type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="admin@tripsync.com" autoComplete="email" />
             <Input label="Mật khẩu" id="password" type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="••••••••" autoComplete="current-password" />
             <Button type="submit" className="w-full">Đăng nhập</Button>
-            <p className="text-xs text-gray-400 text-center">Dùng `admin@tripsync.com` / `admin123` hoặc `manager@tripsync.com` / `manager123`</p>
           </form>
         ) : (
           <form onSubmit={handleJoin} className="space-y-6 animate-fade-in">
