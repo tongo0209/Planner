@@ -197,9 +197,14 @@ const TripView: React.FC<TripViewProps> = ({ trip, user, onBack, onUpdateTrip })
                     {trip.participants.map((participant, idx) => (
                       <span 
                         key={idx}
-                        className="bg-indigo-600/20 text-indigo-300 px-2 sm:px-3 py-1 rounded-full text-xs sm:text-sm font-medium whitespace-nowrap flex-shrink-0"
+                        className={`px-2 sm:px-3 py-1 rounded-full text-xs sm:text-sm font-medium whitespace-nowrap flex-shrink-0 ${
+                          trip.treasurerId === participant 
+                            ? 'bg-yellow-600/30 text-yellow-300 border border-yellow-500/50' 
+                            : 'bg-indigo-600/20 text-indigo-300'
+                        }`}
                       >
                         {participant}
+                        {trip.treasurerId === participant && ' 👑'}
                       </span>
                     ))}
                   </div>

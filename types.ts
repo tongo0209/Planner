@@ -69,6 +69,7 @@ export interface Trip {
   participants: string[]; // For financial calculations, just names for simplicity
   contributions: Contribution[];
   additionalContributions?: AdditionalContributionRound[]; // Các đợt đóng thêm quỹ
+  treasurerId?: string; // ID/tên của người quản lý quỹ chung
 }
 
 export interface WeatherInfo {

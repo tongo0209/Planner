@@ -186,6 +186,7 @@ const App: React.FC = () => {
                   managerId: tripWithTimeline.manager_id,
                   packingList: tripWithTimeline.packing_list,
                   additionalContributions: tripWithTimeline.additional_contributions,
+                  treasurerId: tripWithTimeline.treasurer_id || undefined,
                 };
               });
               setTrips(formattedTrips);
@@ -220,6 +221,7 @@ const App: React.FC = () => {
                   managerId: tripWithTimeline.manager_id,
                   packingList: tripWithTimeline.packing_list,
                   additionalContributions: tripWithTimeline.additional_contributions,
+                  treasurerId: tripWithTimeline.treasurer_id || undefined,
                 };
               });
               setTrips(formattedTrips);
@@ -298,6 +300,7 @@ const App: React.FC = () => {
         managerId: tripWithTimeline.manager_id,
         packingList: tripWithTimeline.packing_list,
         additionalContributions: tripWithTimeline.additional_contributions,
+        treasurerId: tripWithTimeline.treasurer_id || undefined,
       };
       setSelectedTrip(formattedTrip);
       setView('trip');
@@ -312,6 +315,7 @@ const App: React.FC = () => {
         managerId: tripWithTimeline.manager_id,
         packingList: tripWithTimeline.packing_list,
         additionalContributions: tripWithTimeline.additional_contributions,
+        treasurerId: tripWithTimeline.treasurer_id || undefined,
       };
       
       // Lưu lịch sử truy cập
@@ -391,6 +395,7 @@ const App: React.FC = () => {
             coverImageUrl: data.cover_image_url,
             managerId: data.manager_id,
             packingList: data.packing_list,
+            treasurerId: data.treasurer_id || undefined,
           };
           setTrips([...trips, formattedTrip]);
           alert('Chuyến đi đã được tạo thành công!');
@@ -423,6 +428,7 @@ const App: React.FC = () => {
           coverImageUrl: data.cover_image_url,
           managerId: data.manager_id,
           packingList: data.packing_list,
+          treasurerId: data.treasurer_id || undefined,
         };
         setTrips(prevTrips => 
           prevTrips.map(trip => 
@@ -523,6 +529,7 @@ const App: React.FC = () => {
       participants: tripData.participants,
       contributions: tripData.contributions,
       additional_contributions: tripData.additionalContributions || [],
+      treasurer_id: tripData.treasurerId || null,
     };
     
     const { data, error } = await supabase.from('trips').update(dbData).eq('id', id).select().single();
@@ -538,6 +545,7 @@ const App: React.FC = () => {
           managerId: data.manager_id,
           packingList: data.packing_list,
           additionalContributions: data.additional_contributions,
+          treasurerId: data.treasurer_id || undefined,
         };
         setTrips(prevTrips => prevTrips.map(trip => trip.id === data.id ? formattedTrip : trip));
         setSelectedTrip(formattedTrip);

@@ -53,7 +53,6 @@ interface DateInputProps {
 }
 
 export const DateInput: React.FC<DateInputProps> = ({ label, value, onChange, min, max, className }) => {
-    const dateInputRef = React.useRef<HTMLInputElement>(null);
     
     // Convert YYYY-MM-DD to dd/mm/yyyy for display
     const formatDateForDisplay = (isoDate: string): string => {
@@ -71,21 +70,12 @@ export const DateInput: React.FC<DateInputProps> = ({ label, value, onChange, mi
             {label && <label className="block text-sm font-medium text-gray-300 mb-2 group-focus-within:text-indigo-400 transition-colors">{label}</label>}
             <div className="relative">
                 <input
-                    type="text"
-                    value={displayValue}
-                    readOnly
-                    onClick={() => dateInputRef.current?.showPicker?.() || dateInputRef.current?.click()}
-                    placeholder="dd/mm/yyyy"
-                    className={`w-full bg-gray-800/50 backdrop-blur border border-gray-600 text-white rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 cursor-pointer transition-all duration-200 hover:border-gray-500 ${className}`}
-                />
-                <input
-                    ref={dateInputRef}
                     type="date"
                     value={value}
                     onChange={(e) => onChange(e.target.value)}
                     min={min}
                     max={max}
-                    className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
+                    className={`w-full bg-gray-800/50 backdrop-blur border border-gray-600 text-white rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 cursor-pointer transition-all duration-200 hover:border-gray-500 ${className}`}
                 />
             </div>
         </div>

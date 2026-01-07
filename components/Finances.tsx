@@ -35,6 +35,14 @@ const Finances: React.FC<FinancesProps> = memo(({ trip, isAdmin, onUpdateTrip })
   const [isEditingInitialFund, setIsEditingInitialFund] = useState(false);
   const [editInitialAmount, setEditInitialAmount] = useState('');
   const [isBalanceExpanded, setIsBalanceExpanded] = useState(false);
+  
+  // State for treasurer selection
+  const [selectedTreasurer, setSelectedTreasurer] = useState(trip.treasurerId || '');
+
+  // Sync selected treasurer when trip updates
+  useEffect(() => {
+    setSelectedTreasurer(trip.treasurerId || '');
+  }, [trip.treasurerId]);
 
   useEffect(() => {
     if (isExpenseFormOpen) {
@@ -128,15 +136,32 @@ const Finances: React.FC<FinancesProps> = memo(({ trip, isAdmin, onUpdateTrip })
     const creditors = Object.entries(userBalances).filter(([, balance]) => balance > 0).map(([name, balance]) => ({ name, amount: balance }));
     
     const transactions = [];
-    let i = 0, j = 0;
 
-    while (i < debtors.length && j < creditors.length) {
+    // Nếu có thủ quỹ: mọi giao dịch qua thủ quỹ
+    if (selectedTreasurer && selectedTreasurer.trim() !== '') {
+      // Debtors thanh toán cho thủ quỹ
+      debtors.forEach(debtor => {
+        if (debtor.amount > 1) { // Threshold
+          transactions.push({ from: debtor.name, to: selectedTreasurer, amount: debtor.amount });
+        }
+      });
+      
+      // Thủ quỹ hoàn lại cho creditors
+      creditors.forEach(creditor => {
+        if (creditor.name !== selectedTreasurer && creditor.amount > 1) {
+          transactions.push({ from: selectedTreasurer, to: creditor.name, amount: creditor.amount });
+        }
+      });
+    } else {
+      // Nếu không có thủ quỹ: dùng logic cũ (debtor → creditor trực tiếp)
+      let i = 0, j = 0;
+      while (i < debtors.length && j < creditors.length) {
         const debtor = debtors[i];
         const creditor = creditors[j];
         const amount = Math.min(debtor.amount, creditor.amount);
 
         if (amount > 1) { // Threshold for VND
-            transactions.push({ from: debtor.name, to: creditor.name, amount });
+          transactions.push({ from: debtor.name, to: creditor.name, amount });
         }
 
         debtor.amount -= amount;
@@ -144,10 +169,11 @@ const Finances: React.FC<FinancesProps> = memo(({ trip, isAdmin, onUpdateTrip })
         
         if (debtor.amount < 1) i++;
         if (creditor.amount < 1) j++;
+      }
     }
 
     return { settledTransactions: transactions, finalBalances: userBalances, fundBalance, totalAllContributions, totalExpensesFromFund };
-  }, [expenses, participants, contributions, additionalContributions]);
+  }, [expenses, participants, contributions, additionalContributions, selectedTreasurer]);
 
   const totalCollectedContributions = contributions
     .filter(c => c.paid)
@@ -363,6 +389,54 @@ const Finances: React.FC<FinancesProps> = memo(({ trip, isAdmin, onUpdateTrip })
         )}
       </div>
 
+      {/* Chọn thủ quỹ */}
+      {isAdmin && (
+        <div className="mb-6 p-4 bg-blue-600/20 border border-blue-500/30 rounded-lg">
+          <label className="block text-sm font-semibold text-gray-300 mb-2">👤 Chọn người quản lý quỹ:</label>
+          <select 
+            value={selectedTreasurer} 
+            onChange={(e) => {
+              const newValue = e.target.value;
+              setSelectedTreasurer(newValue);
+              onUpdateTrip({ ...trip, treasurerId: newValue || undefined });
+            }}
+            className="w-full bg-gray-800 border border-gray-600 text-white rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+          >
+            <option value="">-- Chọn thủ quỹ --</option>
+            {participants.map(p => (
+              <option key={p} value={p}>{p}</option>
+            ))}
+          </select>
+          {selectedTreasurer && (
+            <p className="text-xs text-blue-300 mt-2">✓ Thủ quỹ: <strong>{selectedTreasurer}</strong></p>
+          )}
+          <div className="text-xs text-blue-200 mt-3 space-y-1">
+            <p>📋 <strong>Quy tắc thanh toán:</strong></p>
+            {selectedTreasurer ? (
+              <ul className="ml-4 space-y-1">
+                <li>• Người nợ tiền → thanh toán cho <strong>{selectedTreasurer}</strong></li>
+                <li>• <strong>{selectedTreasurer}</strong> → hoàn lại cho người thừa tiền</li>
+              </ul>
+            ) : (
+              <ul className="ml-4 space-y-1">
+                <li>• Người nợ thanh toán trực tiếp cho người thừa</li>
+                <li>• Vui lòng chọn thủ quỹ để tập trung giao dịch</li>
+              </ul>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Hiển thị thủ quỹ cho người dùng không phải admin */}
+      {!isAdmin && selectedTreasurer && (
+        <div className="mb-6 p-4 bg-yellow-600/20 border border-yellow-500/30 rounded-lg">
+          <p className="text-sm text-yellow-300">
+            👑 <strong>Thủ quỹ:</strong> {selectedTreasurer}
+          </p>
+          <p className="text-xs text-yellow-200 mt-2">Giao dịch thanh toán sẽ qua thủ quỹ</p>
+        </div>
+      )}
+
        <div className="mb-6">
             <div className="flex justify-between items-center mb-2">
               <h4 className="font-semibold text-gray-300">Quỹ đóng góp</h4>
@@ -569,13 +643,13 @@ const Finances: React.FC<FinancesProps> = memo(({ trip, isAdmin, onUpdateTrip })
 
       <div className="mb-6">
         <h4 className="font-semibold text-gray-300 mb-2">Gợi ý thanh toán</h4>
-        <div className="space-y-2">
+        <div className="max-h-40 overflow-y-auto pr-2 space-y-2">
             {financialSummary.settledTransactions.length > 0 ? financialSummary.settledTransactions.map((t, index) => (
                 <div key={index} className="flex items-center justify-between bg-gray-700/50 p-2 rounded-lg text-sm">
-                    <span className="font-medium text-red-300">{t.from}</span>
-                    <span className="text-gray-400 mx-2">&rarr;</span>
-                    <span className="font-medium text-green-300">{t.to}</span>
-                    <span className="font-bold text-white ml-auto">{formatCurrency(t.amount)}</span>
+                    <span className="font-medium text-red-300 truncate">{t.from}</span>
+                    <span className="text-gray-400 mx-2 flex-shrink-0">&rarr;</span>
+                    <span className="font-medium text-green-300 truncate">{t.to}</span>
+                    <span className="font-bold text-white ml-auto flex-shrink-0">{formatCurrency(t.amount)}</span>
                 </div>
             )) : <p className="text-gray-400 text-center text-sm">Tất cả công nợ đã được giải quyết!</p>}
         </div>
@@ -583,7 +657,7 @@ const Finances: React.FC<FinancesProps> = memo(({ trip, isAdmin, onUpdateTrip })
 
       <div>
         <h4 className="font-semibold text-gray-300 mb-2">Chi phí gần đây</h4>
-        <div className="space-y-2 max-h-96 overflow-y-auto pr-2">
+        <div className="space-y-2 max-h-64 overflow-y-auto pr-2">
             {expenses.slice().reverse().map(e => (
                 <div key={e.id} className="group flex justify-between items-center bg-gray-700/50 p-3 rounded-lg">
                     <div>

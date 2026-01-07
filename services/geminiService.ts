@@ -1,5 +1,6 @@
 import { GoogleGenAI, Type } from "@google/genai";
 import { TimelineEvent } from '../types';
+import { getWeather } from './weatherService';
 
 // Lấy API Key từ environment variable
 const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
@@ -261,100 +262,55 @@ export const suggestPackingItems = async (destination: string, duration: number,
     }
 };
 export const getWeatherInfo = async (destination: string) => {
-    // Check cache first - weather changes frequently so use short TTL
-    const cacheKey = `weather_${destination}`;
-    const cached = geminiCache.get<any>(cacheKey);
-    if (cached) {
-        return cached;
-    }
-
-    // Lấy thời gian hiện tại theo GMT+7 (Việt Nam)
-    const now = new Date();
-    const vietnamTime = new Date(now.toLocaleString('en-US', { timeZone: 'Asia/Ho_Chi_Minh' }));
-    
-    const dayNames = ['CN', 'T2', 'T3', 'T4', 'T5', 'T6', 'T7'];
-    const dayNamesFull = ['Chủ nhật', 'Thứ 2', 'Thứ 3', 'Thứ 4', 'Thứ 5', 'Thứ 6', 'Thứ 7'];
-    
-    // Hôm nay (GMT+7)
-    const todayDay = vietnamTime.getDate();
-    const todayMonth = vietnamTime.getMonth() + 1;
-    const todayYear = vietnamTime.getFullYear();
-    const todayDayOfWeek = vietnamTime.getDay();
-    const todayStr = `${String(todayDay).padStart(2, '0')}/${String(todayMonth).padStart(2, '0')}/${todayYear}`;
-    const todayDayName = dayNames[todayDayOfWeek];
-    const todayDayNameFull = dayNamesFull[todayDayOfWeek];
-    
-    // Ngày mai (GMT+7)
-    const tomorrow = new Date(vietnamTime);
-    tomorrow.setDate(tomorrow.getDate() + 1);
-    const tomorrowDay = tomorrow.getDate();
-    const tomorrowMonth = tomorrow.getMonth() + 1;
-    const tomorrowDayOfWeek = tomorrow.getDay();
-    const tomorrowStr = `${String(tomorrowDay).padStart(2, '0')}/${String(tomorrowMonth).padStart(2, '0')}`;
-    const tomorrowDayName = dayNames[tomorrowDayOfWeek];
-    const tomorrowDayNameFull = dayNamesFull[tomorrowDayOfWeek];
-    
-    // Ngày kia (GMT+7)
-    const dayAfter = new Date(vietnamTime);
-    dayAfter.setDate(dayAfter.getDate() + 2);
-    const dayAfterDay = dayAfter.getDate();
-    const dayAfterMonth = dayAfter.getMonth() + 1;
-    const dayAfterDayOfWeek = dayAfter.getDay();
-    const dayAfterStr = `${String(dayAfterDay).padStart(2, '0')}/${String(dayAfterMonth).padStart(2, '0')}`;
-    const dayAfterDayName = dayNames[dayAfterDayOfWeek];
-    const dayAfterDayNameFull = dayNamesFull[dayAfterDayOfWeek];
-    
-    const prompt = `HÔM NAY (theo giờ Việt Nam GMT+7): ${todayDayNameFull} (${todayDayName}), ngày ${todayStr}
-
-Cho tôi thông tin thời tiết THỜI GIAN THỰC cho địa điểm: ${destination}
-
-Bao gồm:
-1. Thời tiết HIỆN TẠI tại ${destination}: nhiệt độ (°C), điều kiện, emoji icon
-2. Dự báo theo giờ: 12 giờ tiếp theo từ bây giờ
-3. Dự báo 2 ngày TỚI (không tính hôm nay):
-   - Ngày thứ 1: ${tomorrowDayNameFull} (${tomorrowDayName}), ${tomorrowStr}
-   - Ngày thứ 2: ${dayAfterDayNameFull} (${dayAfterDayName}), ${dayAfterStr}
-
-QUAN TRỌNG:
-- Lấy thời tiết thực tế hiện tại của ${destination}
-- "date" trong daily phải là: "${tomorrowStr}" và "${dayAfterStr}"
-- "dayName" trong daily phải là: "${tomorrowDayName}" và "${dayAfterDayName}"
-- Emoji: ☀️ (nắng), ☁️ (mây), 🌧️ (mưa), 🌙 (đêm), ⛅ (mây ít), 🌦️ (mưa rào)`;
-
     try {
-        const response = await ai.models.generateContent({
-            model: "gemini-2.5-flash",
-            contents: prompt,
-            config: {
-                responseMimeType: "application/json",
-                responseSchema: weatherSchema,
-            },
-        });
-        const jsonText = response.text.trim();
-        const weatherData = JSON.parse(jsonText);
-        
-        // Cache for 5 minutes - weather changes frequently
-        geminiCache.set(cacheKey, weatherData, 5);
-        
+        const weatherData = await getWeather(destination);
         return weatherData;
     } catch (error) {
-        console.error("Error getting weather from Gemini:", error);
-        // Fallback to mock data
+        console.error("Lỗi khi lấy thời tiết:", error);
+        // Dữ liệu fallback
+        const now = new Date();
+        const tomorrow = new Date(now);
+        tomorrow.setDate(tomorrow.getDate() + 1);
+        const dayAfter = new Date(now);
+        dayAfter.setDate(dayAfter.getDate() + 2);
+
+        const dayNames = ['CN', 'T2', 'T3', 'T4', 'T5', 'T6', 'T7'];
+        
+        const formatDate = (date: Date) => {
+            const day = String(date.getDate()).padStart(2, '0');
+            const month = String(date.getMonth() + 1).padStart(2, '0');
+            return `${day}/${month}`;
+        };
+
         return {
             current: {
                 temperature: 25,
-                condition: "Nắng, có mây rải rác",
-                icon: "☀️"
+                condition: "Mây thưa",
+                icon: "⛅"
             },
             hourly: Array.from({ length: 12 }, (_, i) => ({
                 time: `${String((new Date().getHours() + i) % 24).padStart(2, '0')}:00`,
-                temp: 25 + Math.floor(Math.random() * 5),
-                condition: "Nắng",
-                icon: "☀️"
+                temp: 23 + Math.floor(Math.random() * 5),
+                condition: "Mây thưa",
+                icon: "⛅"
             })),
             daily: [
-                { date: "03/01", dayName: "T5", high: 28, low: 20, condition: "Nắng", icon: "☀️" },
-                { date: "04/01", dayName: "T6", high: 27, low: 19, condition: "Mưa nhẹ", icon: "🌧️" }
+                { 
+                    date: formatDate(tomorrow), 
+                    dayName: dayNames[tomorrow.getDay()], 
+                    high: 28, 
+                    low: 20, 
+                    condition: "Nắng", 
+                    icon: "☀️" 
+                },
+                { 
+                    date: formatDate(dayAfter), 
+                    dayName: dayNames[dayAfter.getDay()], 
+                    high: 27, 
+                    low: 19, 
+                    condition: "Mưa nhẹ", 
+                    icon: "🌧️" 
+                }
             ]
         };
     }
