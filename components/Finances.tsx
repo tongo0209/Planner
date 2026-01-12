@@ -2,6 +2,7 @@ import React, { useState, useMemo, useEffect, useCallback, memo } from 'react';
 import { Expense, Contribution, Trip, formatCurrency, formatDate } from '../types';
 import { Card, Button, Input, Modal, DateInput } from './ui';
 import { WalletIcon, PlusIcon } from './icons';
+import { exportFinancesToExcel } from '../services/excelExportService';
 
 interface FinancesProps {
   trip: Trip;
@@ -382,11 +383,20 @@ const Finances: React.FC<FinancesProps> = memo(({ trip, isAdmin, onUpdateTrip })
             <WalletIcon className="w-6 h-6 text-indigo-300" />
             <h3 className="text-xl font-bold text-white">Tài chính</h3>
         </div>
-        {isAdmin && (
-            <Button onClick={openAddExpenseModal} variant="secondary">
-                <PlusIcon className="w-5 h-5" /> Thêm chi phí
-            </Button>
-        )}
+        <div className="flex gap-2">
+          <button 
+            onClick={() => exportFinancesToExcel(trip, selectedTreasurer)}
+            className="flex items-center gap-2 bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg font-medium transition"
+            title="Xuất file Excel"
+          >
+            📊 Xuất Excel
+          </button>
+          {isAdmin && (
+              <Button onClick={openAddExpenseModal} variant="secondary">
+                  <PlusIcon className="w-5 h-5" /> Thêm chi phí
+              </Button>
+          )}
+        </div>
       </div>
 
       {/* Chọn thủ quỹ */}
