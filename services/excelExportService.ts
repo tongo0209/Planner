@@ -111,7 +111,7 @@ export const exportFinancesToExcel = (trip: Trip, selectedTreasurer: string = ''
   titleRow.height = 25;
   titleRow.getCell(1).font = { bold: true, size: 16, color: { argb: 'FFFFFFFF' } };
   titleRow.getCell(1).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF1E40AF' } };
-  titleRow.getCell(1).alignment = { horizontal: 'left', vertical: 'center' };
+  titleRow.getCell(1).alignment = { horizontal: 'left', vertical: 'middle' };
   
   fundSheet.addRow(['', '']);
   
@@ -157,7 +157,7 @@ export const exportFinancesToExcel = (trip: Trip, selectedTreasurer: string = ''
   headerRow.eachCell(cell => {
     cell.font = { bold: true, size: 11, color: { argb: 'FFFFFFFF' } };
     cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF4F46E5' } };
-    cell.alignment = { horizontal: 'center', vertical: 'center' };
+    cell.alignment = { horizontal: 'center', vertical: 'middle' };
     cell.border = { top: { style: 'thin' }, bottom: { style: 'thin' }, left: { style: 'thin' }, right: { style: 'thin' } };
   });
 
@@ -192,7 +192,7 @@ export const exportFinancesToExcel = (trip: Trip, selectedTreasurer: string = ''
   expenseHeaderRow.eachCell(cell => {
     cell.font = { bold: true, size: 11, color: { argb: 'FFFFFFFF' } };
     cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF4F46E5' } };
-    cell.alignment = { horizontal: 'center', vertical: 'center' };
+    cell.alignment = { horizontal: 'center', vertical: 'middle' };
     cell.border = { top: { style: 'thin' }, bottom: { style: 'thin' }, left: { style: 'thin' }, right: { style: 'thin' } };
   });
 
@@ -224,7 +224,7 @@ export const exportFinancesToExcel = (trip: Trip, selectedTreasurer: string = ''
   settlementHeaderRow.eachCell(cell => {
     cell.font = { bold: true, size: 11, color: { argb: 'FFFFFFFF' } };
     cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF4F46E5' } };
-    cell.alignment = { horizontal: 'center', vertical: 'center' };
+    cell.alignment = { horizontal: 'center', vertical: 'middle' };
     cell.border = { top: { style: 'thin' }, bottom: { style: 'thin' }, left: { style: 'thin' }, right: { style: 'thin' } };
   });
 

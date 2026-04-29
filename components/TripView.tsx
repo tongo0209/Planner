@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { Trip, UserRole, AuthUser, TimelineEvent, PackingItem } from '../types';
+import React, { useState, useCallback } from 'react';
+import { Trip, UserRole, AuthUser, TimelineEvent, PackingItem, formatDate } from '../types';
 import Timeline from './Timeline';
 import Finances from './Finances';
 import Weather from './Weather';
@@ -7,8 +7,10 @@ import TripStats from './TripStats';
 import ExpenseChart from './ExpenseChart';
 import ExpenseCategoryChart from './ExpenseCategoryChart';
 import DailyExpenseChart from './DailyExpenseChart';
+import PackingList from './PackingList';
 import { UsersIcon } from './icons';
 import { Button, Input, Modal } from './ui';
+import { useToast } from './Toast';
 
 interface TripViewProps {
   trip: Trip;
@@ -18,6 +20,7 @@ interface TripViewProps {
 }
 
 const TripView: React.FC<TripViewProps> = ({ trip, user, onBack, onUpdateTrip }) => {
+  const toast = useToast();
   const [isEditingHeader, setIsEditingHeader] = useState(false);
   const [headerData, setHeaderData] = useState({
       name: trip.name,
@@ -61,13 +64,13 @@ const TripView: React.FC<TripViewProps> = ({ trip, user, onBack, onUpdateTrip })
     setIsEditingHeader(false);
   }
 
-  const handleUpdateTimeline = (updatedEvents: TimelineEvent[]) => {
+  const handleUpdateTimeline = useCallback((updatedEvents: TimelineEvent[]) => {
     onUpdateTrip({ ...trip, timeline: updatedEvents });
-  };
-  
-  const handleUpdatePackingList = (updatedItems: PackingItem[]) => {
+  }, [trip, onUpdateTrip]);
+
+  const handleUpdatePackingList = useCallback((updatedItems: PackingItem[]) => {
     onUpdateTrip({ ...trip, packingList: updatedItems });
-  };
+  }, [trip, onUpdateTrip]);
 
   const handleAddParticipant = () => {
     const name = newParticipantName.trim();
@@ -86,14 +89,14 @@ const TripView: React.FC<TripViewProps> = ({ trip, user, onBack, onUpdateTrip })
       onUpdateTrip({ ...trip, participants: updatedParticipants, contributions: updatedContributions });
       setNewParticipantName('');
     } else {
-        alert("Tên thành viên không hợp lệ hoặc đã tồn tại.");
+        toast.error('Tên thành viên không hợp lệ hoặc đã tồn tại.');
     }
   };
 
   const handleDeleteParticipant = (name: string) => {
     const hasPaid = trip.expenses.some(e => e.paidBy === name);
     if (hasPaid) {
-      alert(`${name} đã thanh toán cho một số chi phí và không thể bị xóa để đảm bảo tính toàn vẹn tài chính.`);
+      toast.error(`${name} đã thanh toán cho một số chi phí và không thể bị xóa để đảm bảo tính toàn vẹn tài chính.`);
       return;
     }
 
@@ -116,11 +119,11 @@ const TripView: React.FC<TripViewProps> = ({ trip, user, onBack, onUpdateTrip })
   const handleSaveParticipant = () => {
     const newName = editParticipantName.trim();
     if (!newName) {
-      alert('Tên thành viên không được để trống');
+      toast.error('Tên thành viên không được để trống');
       return;
     }
     if (newName !== editingParticipant && trip.participants.includes(newName)) {
-      alert('Tên thành viên đã tồn tại');
+      toast.error('Tên thành viên đã tồn tại');
       return;
     }
     
@@ -187,7 +190,7 @@ const TripView: React.FC<TripViewProps> = ({ trip, user, onBack, onUpdateTrip })
                 <div>
                     <h1 className="text-2xl sm:text-4xl md:text-5xl font-extrabold tracking-tight">{trip.name}</h1>
                     <p className="text-base sm:text-lg text-gray-300">{trip.destination}</p>
-                    <p className="text-sm sm:text-base text-indigo-400">{trip.startDate} đến {trip.endDate}</p>
+                    <p className="text-sm sm:text-base text-indigo-400">{formatDate(trip.startDate)} đến {formatDate(trip.endDate)}</p>
                 </div>
             )}
             <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 mt-2">
@@ -260,7 +263,14 @@ const TripView: React.FC<TripViewProps> = ({ trip, user, onBack, onUpdateTrip })
           </div>
           <div className="space-y-6">
             <Weather destination={trip.destination} />
-            <Finances 
+            <PackingList
+              initialItems={trip.packingList || []}
+              isAdmin={isAdminOrManager}
+              tripDestination={trip.destination}
+              tripDuration={getDaysDuration()}
+              onUpdateItems={handleUpdatePackingList}
+            />
+            <Finances
               trip={trip}
               isAdmin={isAdminOrManager}
               onUpdateTrip={onUpdateTrip}
@@ -347,7 +357,7 @@ const TripView: React.FC<TripViewProps> = ({ trip, user, onBack, onUpdateTrip })
                 <p className="text-sm text-gray-400">Hành động này không thể hoàn tác.</p>
                 <div className="flex justify-end gap-4 pt-4">
                     <Button variant="secondary" onClick={() => setParticipantToDelete(null)}>Hủy</Button>
-                    <Button variant="primary" className="!bg-red-600 hover:!bg-red-500" onClick={() => {
+                    <Button variant="danger" onClick={() => {
                         handleDeleteParticipant(participantToDelete);
                         setParticipantToDelete(null);
                     }}>

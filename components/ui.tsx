@@ -91,14 +91,37 @@ interface ModalProps {
 }
 
 export const Modal: React.FC<ModalProps> = ({ isOpen, onClose, children, title }) => {
+  const titleId = React.useId();
+
+  React.useEffect(() => {
+    if (!isOpen) return;
+    const handleKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose();
+    };
+    document.addEventListener('keydown', handleKey);
+    return () => document.removeEventListener('keydown', handleKey);
+  }, [isOpen, onClose]);
+
   if (!isOpen) return null;
 
   return (
     <div className="fixed inset-0 bg-black/70 backdrop-blur-md flex items-center justify-center z-[9999] p-4 animate-fade-in" onClick={onClose}>
-      <div className="bg-gradient-to-br from-gray-800/95 to-gray-900/95 backdrop-blur-xl border border-gray-700/50 rounded-2xl shadow-2xl p-6 w-full max-w-md animate-scale-in" onClick={(e) => e.stopPropagation()}>
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby={titleId}
+        className="bg-gradient-to-br from-gray-800/95 to-gray-900/95 backdrop-blur-xl border border-gray-700/50 rounded-2xl shadow-2xl p-6 w-full max-w-md max-h-[90vh] overflow-y-auto animate-scale-in"
+        onClick={(e) => e.stopPropagation()}
+      >
         <div className="flex justify-between items-center mb-6">
-          <h2 className="text-2xl font-bold bg-gradient-to-r from-indigo-400 to-purple-400 bg-clip-text text-transparent">{title}</h2>
-          <button onClick={onClose} className="text-gray-400 hover:text-white transition-colors text-3xl leading-none hover:rotate-90 transform duration-300">&times;</button>
+          <h2 id={titleId} className="text-2xl font-bold bg-gradient-to-r from-indigo-400 to-purple-400 bg-clip-text text-transparent">{title}</h2>
+          <button
+            onClick={onClose}
+            aria-label="Đóng hộp thoại"
+            className="text-gray-400 hover:text-white transition-colors text-3xl leading-none hover:rotate-90 transform duration-300"
+          >
+            &times;
+          </button>
         </div>
         <div>{children}</div>
       </div>
@@ -120,9 +143,18 @@ export const Card: React.FC<CardProps> = ({children, className, hover = false}) 
 );
 
 
-export const Spinner: React.FC = () => (
-    <div className="relative">
-        <div className="animate-spin rounded-full h-12 w-12 border-4 border-gray-700"></div>
-        <div className="animate-spin rounded-full h-12 w-12 border-4 border-indigo-500 border-t-transparent absolute inset-0"></div>
-    </div>
-);
+interface SpinnerProps {
+    label?: string;
+    size?: 'sm' | 'md' | 'lg';
+}
+
+export const Spinner: React.FC<SpinnerProps> = ({ label = 'Đang tải...', size = 'md' }) => {
+    const sizeClass = size === 'sm' ? 'h-4 w-4 border-2' : size === 'lg' ? 'h-16 w-16 border-4' : 'h-12 w-12 border-4';
+    return (
+        <div role="status" aria-live="polite" aria-label={label} className="relative">
+            <div className={`animate-spin rounded-full ${sizeClass} border-gray-700`}></div>
+            <div className={`animate-spin rounded-full ${sizeClass} border-indigo-500 border-t-transparent absolute inset-0`}></div>
+            <span className="sr-only">{label}</span>
+        </div>
+    );
+};

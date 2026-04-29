@@ -1,8 +1,9 @@
 import React, { useState, useMemo, useEffect, useCallback, memo } from 'react';
 import { Expense, Contribution, Trip, formatCurrency, formatDate } from '../types';
 import { Card, Button, Input, Modal, DateInput } from './ui';
+import { useToast } from './Toast';
 import { WalletIcon, PlusIcon } from './icons';
-import { exportFinancesToExcel } from '../services/excelExportService';
+// `excelExportService` import động trong handler bên dưới — tránh bundle ExcelJS (~900KB) vào TripView chunk.
 
 interface FinancesProps {
   trip: Trip;
@@ -13,6 +14,7 @@ interface FinancesProps {
 const EXPENSE_CATEGORIES = ['Ăn uống', 'Di chuyển', 'Chỗ ở', 'Vé tham quan', 'Mua sắm', 'Khác'];
 
 const Finances: React.FC<FinancesProps> = memo(({ trip, isAdmin, onUpdateTrip }) => {
+  const toast = useToast();
   const [isExpenseFormOpen, setIsExpenseFormOpen] = useState(false);
   const [editingExpense, setEditingExpense] = useState<Expense | null>(null);
   const [expenseToDelete, setExpenseToDelete] = useState<Expense | null>(null);
@@ -211,7 +213,7 @@ const Finances: React.FC<FinancesProps> = memo(({ trip, isAdmin, onUpdateTrip })
         setIsExpenseFormOpen(false);
         setEditingExpense(null);
     } else {
-        alert("Vui lòng điền đầy đủ thông tin hợp lệ. Phải có ít nhất một người tham gia chi phí.");
+        toast.error('Vui lòng điền đầy đủ thông tin hợp lệ. Phải có ít nhất một người tham gia chi phí.');
     }
   };
 
@@ -252,12 +254,12 @@ const Finances: React.FC<FinancesProps> = memo(({ trip, isAdmin, onUpdateTrip })
   const handleAddFundContribution = () => {
     const amount = parseFloat(additionalFundAmount);
     if (isNaN(amount) || amount <= 0) {
-      alert('Vui lòng nhập số tiền hợp lệ');
+      toast.error('Vui lòng nhập số tiền hợp lệ');
       return;
     }
-    
+
     if (selectedFundParticipants.length === 0) {
-      alert('Vui lòng chọn ít nhất 1 người tham gia đóng quỹ');
+      toast.error('Vui lòng chọn ít nhất 1 người tham gia đóng quỹ');
       return;
     }
     
@@ -318,7 +320,7 @@ const Finances: React.FC<FinancesProps> = memo(({ trip, isAdmin, onUpdateTrip })
   const handleSaveRound = (roundId: string) => {
     const amount = parseFloat(editRoundAmount);
     if (isNaN(amount) || amount <= 0) {
-      alert('Vui lòng nhập số tiền hợp lệ');
+      toast.error('Vui lòng nhập số tiền hợp lệ');
       return;
     }
     
@@ -358,7 +360,7 @@ const Finances: React.FC<FinancesProps> = memo(({ trip, isAdmin, onUpdateTrip })
   const handleSaveInitialFund = () => {
     const amount = parseFloat(editInitialAmount);
     if (isNaN(amount) || amount <= 0) {
-      alert('Vui lòng nhập số tiền hợp lệ');
+      toast.error('Vui lòng nhập số tiền hợp lệ');
       return;
     }
     
@@ -384,8 +386,12 @@ const Finances: React.FC<FinancesProps> = memo(({ trip, isAdmin, onUpdateTrip })
             <h3 className="text-xl font-bold text-white">Tài chính</h3>
         </div>
         <div className="flex gap-2">
-          <button 
-            onClick={() => exportFinancesToExcel(trip, selectedTreasurer)}
+          <button
+            type="button"
+            onClick={async () => {
+              const { exportFinancesToExcel } = await import('../services/excelExportService');
+              exportFinancesToExcel(trip, selectedTreasurer);
+            }}
             className="flex items-center gap-2 bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg font-medium transition"
             title="Xuất file Excel"
           >
@@ -654,8 +660,8 @@ const Finances: React.FC<FinancesProps> = memo(({ trip, isAdmin, onUpdateTrip })
       <div className="mb-6">
         <h4 className="font-semibold text-gray-300 mb-2">Gợi ý thanh toán</h4>
         <div className="max-h-40 overflow-y-auto pr-2 space-y-2">
-            {financialSummary.settledTransactions.length > 0 ? financialSummary.settledTransactions.map((t, index) => (
-                <div key={index} className="flex items-center justify-between bg-gray-700/50 p-2 rounded-lg text-sm">
+            {financialSummary.settledTransactions.length > 0 ? financialSummary.settledTransactions.map((t) => (
+                <div key={`${t.from}->${t.to}-${t.amount}`} className="flex items-center justify-between bg-gray-700/50 p-2 rounded-lg text-sm">
                     <span className="font-medium text-red-300 truncate">{t.from}</span>
                     <span className="text-gray-400 mx-2 flex-shrink-0">&rarr;</span>
                     <span className="font-medium text-green-300 truncate">{t.to}</span>
@@ -677,9 +683,21 @@ const Finances: React.FC<FinancesProps> = memo(({ trip, isAdmin, onUpdateTrip })
                     <div className="flex items-center gap-4">
                         <p className="font-bold text-lg text-indigo-300">{formatCurrency(e.amount)}</p>
                         {isAdmin && (
-                            <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                                <button onClick={() => openEditExpenseModal(e)} className="text-xs text-yellow-400 hover:text-yellow-300">Sửa</button>
-                                <button onClick={() => setExpenseToDelete(e)} className="text-xs text-red-400 hover:text-red-300">Xóa</button>
+                            <div className="flex gap-2 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
+                                <button
+                                    onClick={() => openEditExpenseModal(e)}
+                                    aria-label={`Sửa chi phí: ${e.description}`}
+                                    className="text-xs text-yellow-400 hover:text-yellow-300"
+                                >
+                                    Sửa
+                                </button>
+                                <button
+                                    onClick={() => setExpenseToDelete(e)}
+                                    aria-label={`Xóa chi phí: ${e.description}`}
+                                    className="text-xs text-red-400 hover:text-red-300"
+                                >
+                                    Xóa
+                                </button>
                             </div>
                         )}
                     </div>

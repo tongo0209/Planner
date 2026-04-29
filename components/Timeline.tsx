@@ -1,6 +1,7 @@
 import React, { useState, memo, useMemo, useCallback } from 'react';
 import { TimelineEvent } from '../types';
 import { Card, Button, Modal, Input, Spinner } from './ui';
+import { useToast } from './Toast';
 import { suggestTimeline } from '../services/geminiService';
 import { CalendarIcon, PlusIcon, SparklesIcon, MapPinIcon } from './icons';
 
@@ -14,6 +15,7 @@ interface TimelineProps {
 }
 
 const Timeline: React.FC<TimelineProps> = memo(({ initialEvents, tripDuration, tripDestination, tripStartDate, isAdmin, onUpdateEvents }) => {
+  const toast = useToast();
   const [events, setEvents] = useState<TimelineEvent[]>(initialEvents);
   
   const [isAISuggestModalOpen, setIsAISuggestModalOpen] = useState(false);
@@ -144,7 +146,7 @@ const Timeline: React.FC<TimelineProps> = memo(({ initialEvents, tripDuration, t
   
   const handleAddEvent = useCallback(() => {
     if (!newEvent.activity || !newEvent.description) {
-      alert('Vui lòng nhập tên hoạt động và mô tả');
+      toast.error('Vui lòng nhập tên hoạt động và mô tả');
       return;
     }
     
@@ -163,8 +165,8 @@ const Timeline: React.FC<TimelineProps> = memo(({ initialEvents, tripDuration, t
     setEvents(updatedEvents);
     onUpdateEvents(updatedEvents);
     setIsAddEventModalOpen(false);
-  }, [newEvent, events, onUpdateEvents]);
-  
+  }, [newEvent, events, onUpdateEvents, toast]);
+
   const toggleDayExpanded = useCallback((day: number) => {
     setExpandedDays(prev => {
       const newSet = new Set(prev);
@@ -369,9 +371,21 @@ const Timeline: React.FC<TimelineProps> = memo(({ initialEvents, tripDuration, t
                   )}
                   
                   {isAdmin && (
-                    <div className="absolute top-0 right-0 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                        <button onClick={() => handleOpenEditModal(event)} className="p-1 rounded-full bg-gray-600/50 hover:bg-gray-500/50 text-white">&#9998;</button>
-                        <button onClick={() => handleDeleteEvent(event.id)} className="p-1 rounded-full bg-gray-600/50 hover:bg-red-500/50 text-white">&times;</button>
+                    <div className="absolute top-0 right-0 flex gap-1 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
+                        <button
+                            onClick={() => handleOpenEditModal(event)}
+                            aria-label={`Chỉnh sửa: ${event.activity}`}
+                            className="p-1 rounded-full bg-gray-600/50 hover:bg-gray-500/50 text-white"
+                        >
+                            &#9998;
+                        </button>
+                        <button
+                            onClick={() => handleDeleteEvent(event.id)}
+                            aria-label={`Xóa: ${event.activity}`}
+                            className="p-1 rounded-full bg-gray-600/50 hover:bg-red-500/50 text-white"
+                        >
+                            &times;
+                        </button>
                     </div>
                   )}
                 </div>

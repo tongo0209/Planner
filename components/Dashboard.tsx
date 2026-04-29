@@ -1,6 +1,7 @@
 import React, { useState, useEffect, memo } from 'react';
 import { Trip, AuthUser, UserRole, TripCreationData, TripUpdateData } from '../types';
 import { Card, Button, Modal, Input } from './ui';
+import { useToast } from './Toast';
 import { PlusIcon, EllipsisVerticalIcon, PencilIcon, DocumentDuplicateIcon } from './icons';
 
 interface DashboardProps {
@@ -17,10 +18,11 @@ interface DashboardProps {
   onResetPlannerPassword: (email: string) => void;
 }
 
-const Dashboard: React.FC<DashboardProps> = memo(({ 
+const Dashboard: React.FC<DashboardProps> = memo(({
   user, trips, planners, onSelectTrip, onSignOut, onCreateTrip, onUpdateTripDetails, onCloneTrip,
-  onAddPlanner, onDeletePlanner, onResetPlannerPassword 
+  onAddPlanner, onDeletePlanner, onResetPlannerPassword
 }) => {
+  const toast = useToast();
   const [isTripFormModalOpen, setIsTripFormModalOpen] = useState(false);
   const [isPlannerModalOpen, setIsPlannerModalOpen] = useState(false);
   const [editingTrip, setEditingTrip] = useState<Trip | null>(null);
@@ -134,7 +136,7 @@ const Dashboard: React.FC<DashboardProps> = memo(({
       if (!startDate) missing.push('Ngày bắt đầu');
       if (!endDate) missing.push('Ngày kết thúc');
       if (!coverImageUrl) missing.push('URL ảnh bìa');
-      alert(`Vui lòng điền đầy đủ thông tin:\n- ${missing.join('\n- ')}`);
+      toast.error(`Vui lòng điền đầy đủ thông tin:\n- ${missing.join('\n- ')}`);
     }
   };
 
@@ -144,7 +146,7 @@ const Dashboard: React.FC<DashboardProps> = memo(({
         setNewPlannerEmail('');
         setNewPlannerPassword('');
     } else {
-        alert("Vui lòng nhập cả email và mật khẩu.");
+        toast.error('Vui lòng nhập cả email và mật khẩu.');
     }
   };
   
@@ -182,47 +184,64 @@ const Dashboard: React.FC<DashboardProps> = memo(({
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
         {userTrips.map(trip => (
-          <div key={trip.id} className="group relative rounded-xl overflow-hidden cursor-pointer shadow-lg hover:shadow-xl transition-shadow"
-               onClick={(e) => {
-                 // Prevent navigation when clicking on the actions menu
-                 if (!(e.target as HTMLElement).closest('.actions-menu-container')) {
-                   onSelectTrip(trip.id)
-                 }
-               }}
-          >
-             <img src={trip.coverImageUrl} alt={trip.name} className="w-full h-40 sm:h-48 lg:h-80 object-cover group-hover:scale-105 transition-transform duration-500" />
-             <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/50 to-transparent"></div>
-             <div className="absolute bottom-0 left-0 p-3 sm:p-6 w-full">
-                <h3 className="text-lg sm:text-2xl font-bold truncate">{trip.name}</h3>
-                <p className="text-sm sm:text-base text-gray-300 truncate">{trip.destination}</p>
-                <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 mt-2">
-                  <p className="text-xs text-gray-400 font-mono bg-black/40 px-2 py-1 rounded truncate">
-                    {trip.customId || trip.id}
-                  </p>
-                  <button
-                    onClick={(e) => handleCopyTripId(trip.customId || trip.id, e)}
-                    className="text-xs bg-indigo-600 hover:bg-indigo-500 text-white px-2 py-1 rounded transition"
-                    title="Copy ID để chia sẻ"
-                  >
-                    {copiedTripId === (trip.customId || trip.id) ? '✓ Đã copy' : '📋 Copy'}
-                  </button>
-                </div>
-                 {trip.managerId === '' && user.role === UserRole.ADMIN && (
-                    <p className="text-xs text-yellow-400 mt-1 font-semibold bg-yellow-900/50 px-2 py-1 rounded-full inline-block">Chưa được gán</p>
-                 )}
-             </div>
+          <article key={trip.id} className="group relative rounded-xl overflow-hidden shadow-lg hover:shadow-xl transition-shadow">
+             <button
+               type="button"
+               onClick={() => onSelectTrip(trip.id)}
+               aria-label={`Mở chuyến đi: ${trip.name} - ${trip.destination}`}
+               className="block w-full text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 rounded-xl"
+             >
+               <img src={trip.coverImageUrl} alt="" className="w-full h-40 sm:h-48 lg:h-80 object-cover group-hover:scale-105 transition-transform duration-500" />
+               <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/50 to-transparent pointer-events-none"></div>
+               <div className="absolute bottom-0 left-0 p-3 sm:p-6 w-full">
+                  <h3 className="text-lg sm:text-2xl font-bold truncate">{trip.name}</h3>
+                  <p className="text-sm sm:text-base text-gray-300 truncate">{trip.destination}</p>
+                  <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 mt-2">
+                    <p className="text-xs text-gray-400 font-mono bg-black/40 px-2 py-1 rounded truncate">
+                      {trip.customId || trip.id}
+                    </p>
+                    <span
+                      onClick={(e) => handleCopyTripId(trip.customId || trip.id, e)}
+                      role="button"
+                      tabIndex={0}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' || e.key === ' ') {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          navigator.clipboard.writeText(trip.customId || trip.id);
+                          setCopiedTripId(trip.customId || trip.id);
+                          setTimeout(() => setCopiedTripId(null), 2000);
+                        }
+                      }}
+                      className="text-xs bg-indigo-600 hover:bg-indigo-500 text-white px-2 py-1 rounded transition cursor-pointer"
+                      title="Copy ID để chia sẻ"
+                    >
+                      {copiedTripId === (trip.customId || trip.id) ? '✓ Đã copy' : '📋 Copy'}
+                    </span>
+                  </div>
+                   {trip.managerId === '' && user.role === UserRole.ADMIN && (
+                      <p className="text-xs text-yellow-400 mt-1 font-semibold bg-yellow-900/50 px-2 py-1 rounded-full inline-block">Chưa được gán</p>
+                   )}
+               </div>
+             </button>
              <div className="actions-menu-container absolute top-4 right-4">
-                <button onClick={() => setActiveActionsMenu(activeActionsMenu === trip.id ? null : trip.id)} className="p-2 bg-black/50 rounded-full hover:bg-black/70 transition">
+                <button
+                  type="button"
+                  onClick={() => setActiveActionsMenu(activeActionsMenu === trip.id ? null : trip.id)}
+                  aria-label={`Tuỳ chọn cho chuyến đi: ${trip.name}`}
+                  aria-haspopup="menu"
+                  className="p-2 bg-black/50 rounded-full hover:bg-black/70 transition"
+                >
                   <EllipsisVerticalIcon className="w-5 h-5" />
                 </button>
                 {activeActionsMenu === trip.id && (
-                    <div className="absolute right-0 mt-2 w-48 bg-gray-800 border border-gray-700 rounded-lg shadow-xl z-20 animate-fade-in-up">
-                        <button onClick={() => openEditTripModal(trip)} className="w-full text-left px-4 py-2 text-sm text-gray-200 hover:bg-gray-700 rounded-t-lg flex items-center gap-2"><PencilIcon className="w-4 h-4" /> Chỉnh sửa</button>
-                        <button onClick={() => handleCloneTrip(trip.id)} className="w-full text-left px-4 py-2 text-sm text-gray-200 hover:bg-gray-700 rounded-b-lg flex items-center gap-2"><DocumentDuplicateIcon className="w-4 h-4" /> Nhân bản</button>
+                    <div role="menu" className="absolute right-0 mt-2 w-48 bg-gray-800 border border-gray-700 rounded-lg shadow-xl z-20 animate-fade-in-up">
+                        <button role="menuitem" onClick={() => openEditTripModal(trip)} className="w-full text-left px-4 py-2 text-sm text-gray-200 hover:bg-gray-700 rounded-t-lg flex items-center gap-2"><PencilIcon className="w-4 h-4" /> Chỉnh sửa</button>
+                        <button role="menuitem" onClick={() => handleCloneTrip(trip.id)} className="w-full text-left px-4 py-2 text-sm text-gray-200 hover:bg-gray-700 rounded-b-lg flex items-center gap-2"><DocumentDuplicateIcon className="w-4 h-4" /> Nhân bản</button>
                     </div>
                 )}
              </div>
-          </div>
+          </article>
         ))}
         {userTrips.length === 0 && <p className="text-gray-500">Bạn chưa tạo chuyến đi nào.</p>}
       </div>
@@ -329,7 +348,7 @@ const Dashboard: React.FC<DashboardProps> = memo(({
                 <p>Tất cả các chuyến đi do planner này quản lý sẽ trở thành <strong className="text-yellow-400">chuyến đi chưa được gán</strong> và cần được phân quyền lại.</p>
                 <div className="flex justify-end gap-4 pt-4">
                     <Button variant="secondary" onClick={() => setPlannerToDelete(null)}>Hủy</Button>
-                    <Button variant="primary" className="!bg-red-600 hover:!bg-red-500" onClick={confirmDeletePlanner}>
+                    <Button variant="danger" onClick={confirmDeletePlanner}>
                         Xác nhận Xóa
                     </Button>
                 </div>

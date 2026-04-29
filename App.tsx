@@ -1,8 +1,9 @@
-import React, { useState, useEffect, lazy, Suspense } from 'react';
+import React, { useState, useEffect, useMemo, lazy, Suspense } from 'react';
 import { AuthUser, Trip, UserRole, TripCreationData, TripUpdateData } from './types';
 import Login from './components/Login';
 import { supabase } from './services/supabaseClient';
 import { Spinner } from './components/ui';
+import { useToast } from './components/Toast';
 import { Analytics } from "@vercel/analytics/react";
 
 // Lazy load heavy components
@@ -53,6 +54,30 @@ const App: React.FC = () => {
   const [selectedTrip, setSelectedTrip] = useState<Trip | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const toast = useToast();
+
+  // Memoize planners để tránh tạo array mới mỗi render → Dashboard memo bị bypass.
+  const planners = useMemo(
+    () => users.filter(u => u.role === UserRole.MANAGER),
+    [users]
+  );
+
+  // Cập nhật document.title theo view để screen reader thông báo điều hướng SPA.
+  useEffect(() => {
+    const titles: Record<AppView, string> = {
+      login: 'Đăng nhập | TripSync AI',
+      dashboard: 'Bảng điều khiển | TripSync AI',
+      trip: selectedTrip ? `${selectedTrip.name} | TripSync AI` : 'Chuyến đi | TripSync AI',
+    };
+    document.title = titles[view];
+  }, [view, selectedTrip]);
+
+  // Điều hướng tự động khi state không hợp lệ (thay vì gọi setView trong render).
+  useEffect(() => {
+    if (loading) return;
+    if (view === 'dashboard' && !user) setView('login');
+    if (view === 'trip' && !selectedTrip) setView(user ? 'dashboard' : 'login');
+  }, [view, user, selectedTrip, loading]);
 
   // Kiểm tra phiên làm việc đang hoạt động khi component được gắn kết
   useEffect(() => {
@@ -383,7 +408,7 @@ const App: React.FC = () => {
 
       if (error) {
           setError(error.message);
-          alert(`Lỗi tạo chuyến đi: ${error.message}`);
+          toast.error(`Lỗi tạo chuyến đi: ${error.message}`);
           return false;
       } else if (data) {
           // Convert snake_case back to camelCase for frontend
@@ -398,7 +423,7 @@ const App: React.FC = () => {
             treasurerId: data.treasurer_id || undefined,
           };
           setTrips([...trips, formattedTrip]);
-          alert('Chuyến đi đã được tạo thành công!');
+          toast.success('Chuyến đi đã được tạo thành công!');
           return true;
       }
       return false;
@@ -417,7 +442,7 @@ const App: React.FC = () => {
     const { data, error } = await supabase.from('trips').update(dbData).eq('id', tripId).select().single();
     if(error) {
         setError(error.message);
-        alert(`Lỗi cập nhật chuyến đi: ${error.message}`);
+        toast.error(`Lỗi cập nhật chuyến đi: ${error.message}`);
         return false;
     } else if (data) {
         const formattedTrip = {
@@ -435,7 +460,7 @@ const App: React.FC = () => {
             trip.id === tripId ? formattedTrip : trip
           )
         );
-        alert('Chuyến đi đã được cập nhật!');
+        toast.success('Chuyến đi đã được cập nhật!');
         return true;
     }
     return false;
@@ -461,27 +486,28 @@ const App: React.FC = () => {
 
     if (error) {
         setError(error.message);
+        toast.error(`Lỗi nhân bản: ${error.message}`);
     } else if(data) {
         setTrips(prevTrips => [...prevTrips, data]);
-        alert(`Chuyến đi '${originalTrip.name}' đã được nhân bản!`);
+        toast.success(`Chuyến đi '${originalTrip.name}' đã được nhân bản!`);
     }
   };
 
   const handleAddPlanner = async (email: string, password: string) => {
       const { data, error } = await supabase.auth.signUp({ email, password });
       if (error) {
-          alert(`Lỗi tạo planner: ${error.message}`);
+          toast.error(`Lỗi tạo planner: ${error.message}`);
       } else if (data.user) {
           // Tự động set role là manager
           const { error: updateError } = await supabase
               .from('profiles')
               .update({ role: UserRole.MANAGER })
               .eq('id', data.user.id);
-          
+
           if (updateError) {
-              alert(`Planner đã được tạo nhưng lỗi khi set role: ${updateError.message}. Vui lòng set role 'manager' thủ công.`);
+              toast.error(`Planner đã được tạo nhưng lỗi khi set role: ${updateError.message}. Vui lòng set role 'manager' thủ công.`);
           } else {
-              alert(`Planner ${email} đã được tạo thành công với role Manager!`);
+              toast.success(`Planner ${email} đã được tạo thành công với role Manager!`);
               // Reload danh sách planners
               await loadDataForUser(user!);
           }
@@ -489,7 +515,7 @@ const App: React.FC = () => {
   };
 
   const handleDeletePlanner = (userId: string) => {
-      alert("Xóa người dùng vĩnh viễn là một hành động nhạy cảm và yêu cầu quyền quản trị viên phía máy chủ (server-side). Chức năng này chỉ mô phỏng việc xóa khỏi giao diện.");
+      toast.info('Đã ẩn planner khỏi giao diện. Xóa vĩnh viễn cần quyền quản trị viên phía máy chủ.');
       
       setTrips(prevTrips => 
           prevTrips.map(trip => 
@@ -505,9 +531,9 @@ const App: React.FC = () => {
     });
 
     if (error) {
-        alert(`Lỗi: ${error.message}`);
+        toast.error(`Lỗi: ${error.message}`);
     } else {
-        alert(`Đã gửi email đặt lại mật khẩu tới ${userEmail}.`);
+        toast.success(`Đã gửi email đặt lại mật khẩu tới ${userEmail}.`);
     }
   };
 
@@ -535,7 +561,7 @@ const App: React.FC = () => {
     const { data, error } = await supabase.from('trips').update(dbData).eq('id', id).select().single();
     if (error) {
         setError(error.message);
-        alert(`Lỗi lưu thay đổi: ${error.message}`);
+        toast.error(`Lỗi lưu thay đổi: ${error.message}`);
     } else if (data) {
         const formattedTrip = {
           ...data,
@@ -566,18 +592,16 @@ const App: React.FC = () => {
       case 'login':
         return <Login onLogin={handleLogin} onJoinTrip={handleJoinTrip} error={error} />;
       case 'dashboard':
-        if (!user) {
-          setView('login');
-          return null;
-        }
+        // Nếu thiếu user, useEffect ở trên sẽ điều hướng — render null trong khi chờ.
+        if (!user) return null;
         return (
           <Suspense fallback={<LoadingFallback />}>
-            <Dashboard 
-              user={user} 
-              trips={trips} 
-              planners={users.filter(u => u.role === UserRole.MANAGER)}
-              onSelectTrip={handleSelectTrip} 
-              onSignOut={handleSignOut} 
+            <Dashboard
+              user={user}
+              trips={trips}
+              planners={planners}
+              onSelectTrip={handleSelectTrip}
+              onSignOut={handleSignOut}
               onCreateTrip={handleCreateTrip}
               onUpdateTripDetails={handleUpdateTripDetails}
               onCloneTrip={handleCloneTrip}
@@ -588,17 +612,15 @@ const App: React.FC = () => {
           </Suspense>
         );
       case 'trip':
-        if (!selectedTrip) {
-          setView(user ? 'dashboard' : 'login');
-          return null;
-        }
+        // Nếu thiếu selectedTrip, useEffect ở trên sẽ điều hướng — render null trong khi chờ.
+        if (!selectedTrip) return null;
         return (
           <Suspense fallback={<LoadingFallback />}>
-            <TripView 
-              trip={selectedTrip} 
-              user={user} 
-              onBack={() => setView(user ? 'dashboard' : 'login')} 
-              onUpdateTrip={handleUpdateTrip} 
+            <TripView
+              trip={selectedTrip}
+              user={user}
+              onBack={() => setView(user ? 'dashboard' : 'login')}
+              onUpdateTrip={handleUpdateTrip}
             />
           </Suspense>
         );

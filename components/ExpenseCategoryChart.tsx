@@ -55,7 +55,8 @@ const ExpenseCategoryChart: React.FC<ExpenseCategoryChartProps> = ({ expenses })
     return `${item.color} ${start}% ${end}%`;
   }).join(', ');
 
-  const uid = useMemo(() => `donut-${Math.random().toString(36).slice(2,9)}`, [conicSegments]);
+  const reactId = React.useId();
+  const uid = `donut-${reactId.replace(/:/g, '')}`;
 
   const generatedCSS = useMemo(() => {
     const segments = conicSegments || '';

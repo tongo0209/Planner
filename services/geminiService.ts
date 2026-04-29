@@ -186,7 +186,7 @@ export const suggestTimeline = async (destination: string, duration: number, int
     // Check cache first
     const cached = geminiCache.get<Omit<TimelineEvent, 'id'>[]>(cacheKey);
     if (cached) {
-      console.log('📦 Using cached timeline');
+      if (import.meta.env.DEV) console.log('📦 Using cached timeline');
       return cached;
     }
     
@@ -204,7 +204,7 @@ export const suggestTimeline = async (destination: string, duration: number, int
             },
         });
 
-        const jsonText = response.text.trim();
+        const jsonText = (response.text ?? '').trim();
         const suggestedEvents = JSON.parse(jsonText);
 
         // Basic validation
@@ -244,7 +244,7 @@ export const suggestPackingItems = async (destination: string, duration: number,
                 responseSchema: packingListSchema,
             },
         });
-        const jsonText = response.text.trim();
+        const jsonText = (response.text ?? '').trim();
         const suggestions = JSON.parse(jsonText);
         if (Array.isArray(suggestions)) {
             // Cache for 1 hour - packing lists don't change often

@@ -52,15 +52,25 @@ const Login: React.FC<LoginProps> = ({ onLogin, onJoinTrip, error }) => {
       </div>
 
       <div className="w-full max-w-md bg-gray-800/50 backdrop-blur-lg border border-gray-700 rounded-2xl shadow-2xl p-6 sm:p-8">
-        <div className="flex border-b border-gray-700 mb-6">
-          <button 
-            onClick={() => setActiveTab('login')} 
+        <div role="tablist" aria-label="Phương thức truy cập" className="flex border-b border-gray-700 mb-6">
+          <button
+            role="tab"
+            id="tab-login"
+            aria-selected={activeTab === 'login' ? 'true' : 'false'}
+            aria-controls="panel-login"
+            tabIndex={activeTab === 'login' ? 0 : -1}
+            onClick={() => setActiveTab('login')}
             className={`flex-1 py-3 font-semibold text-sm transition ${activeTab === 'login' ? 'text-indigo-400 border-b-2 border-indigo-400' : 'text-gray-400 hover:text-white'}`}
           >
             Đăng nhập Admin / Planner
           </button>
-          <button 
-            onClick={() => setActiveTab('join')} 
+          <button
+            role="tab"
+            id="tab-join"
+            aria-selected={activeTab === 'join' ? 'true' : 'false'}
+            aria-controls="panel-join"
+            tabIndex={activeTab === 'join' ? 0 : -1}
+            onClick={() => setActiveTab('join')}
             className={`flex-1 py-3 font-semibold text-sm transition ${activeTab === 'join' ? 'text-indigo-400 border-b-2 border-indigo-400' : 'text-gray-400 hover:text-white'}`}
           >
             Tham gia chuyến đi
@@ -68,13 +78,13 @@ const Login: React.FC<LoginProps> = ({ onLogin, onJoinTrip, error }) => {
         </div>
 
         {activeTab === 'login' ? (
-          <form onSubmit={handleLogin} className="space-y-6 animate-fade-in">
+          <form id="panel-login" role="tabpanel" aria-labelledby="tab-login" onSubmit={handleLogin} className="space-y-6 animate-fade-in">
             <Input label="Email" id="email" type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="admin@tripsync.com" autoComplete="email" />
             <Input label="Mật khẩu" id="password" type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="••••••••" autoComplete="current-password" />
             <Button type="submit" className="w-full">Đăng nhập</Button>
           </form>
         ) : (
-          <form onSubmit={handleJoin} className="space-y-6 animate-fade-in">
+          <form id="panel-join" role="tabpanel" aria-labelledby="tab-join" onSubmit={handleJoin} className="space-y-6 animate-fade-in">
             <Input label="ID Chuyến đi" id="tripId" type="text" value={tripId} onChange={e => setTripId(e.target.value)} placeholder="Nhập ID chuyến đi (VD: paris-a3x7k2)" />
             <Button type="submit" className="w-full">Xem chuyến đi</Button>
              <p className="text-xs text-gray-400 text-center">Admin/Planner sẽ cung cấp ID ngắn gọn để bạn tham gia.</p>
